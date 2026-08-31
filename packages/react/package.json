@@ -1,0 +1,32 @@
+{
+  "name": "@separa/react",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --external react --external @separa/core",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@separa/core": "workspace:*",
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@separa/core": "workspace:*",
+    "@types/react": "^19.1.0",
+    "react": "^19.1.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  }
+}

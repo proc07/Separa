@@ -1,0 +1,61 @@
+.inputRow {
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 0;
+  border-bottom: 1px solid #ededed;
+}
+
+.toggleAll {
+  flex-shrink: 0;
+  width: 44px;
+  height: 52px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #ccc;
+  transform: rotate(90deg);
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggleAll.allDone {
+  color: #737373;
+}
+
+.toggleAll:hover {
+  color: #737373;
+}
+
+.input {
+  flex: 1;
+  padding: 16px 12px;
+  font-size: 1.1rem;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #333;
+}
+
+.input::placeholder {
+  color: #ccc;
+  font-style: italic;
+}
+
+.addBtn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  background: #e06c75;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.addBtn:hover {
+  background: #c85b63;
+}

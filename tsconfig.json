@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["node", "vitest/globals"],
+    "paths": {
+      "@separa/core": ["./packages/core/src/index.ts"],
+      "@separa/ioc-inversify": ["./packages/ioc-inversify/src/index.ts"],
+      "@separa/react": ["./packages/react/src/index.ts"],
+      "@separa/vue": ["./packages/vue/src/index.ts"],
+      "@separa/vite-plugin": ["./packages/vite-plugin/src/index.ts"],
+      "@separa/example-todo-shared": ["./examples/todo-shared/src/index.ts"],
+      "@separa/example-ballcraft-shared": ["./examples/ballcraft-shared/src/index.ts"],
+      "@separa/example-cart-shared": ["./examples/cart-shared/src/index.ts"]
+    }
+  },
+  "include": ["packages/**/*.ts", "packages/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx", "vitest.config.ts"]
+}

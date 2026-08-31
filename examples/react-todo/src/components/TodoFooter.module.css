@@ -1,0 +1,60 @@
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid #ededed;
+  font-size: 0.85rem;
+  color: #777;
+  background: #fafafa;
+}
+
+.count {
+  min-width: 80px;
+}
+
+.count strong {
+  font-weight: 600;
+  color: #555;
+}
+
+.filters {
+  display: flex;
+  gap: 4px;
+}
+
+.filterBtn {
+  padding: 4px 10px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.83rem;
+  color: inherit;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.filterBtn:hover {
+  border-color: #ccc;
+}
+
+.filterBtn.active {
+  border-color: #e06c75;
+  color: #e06c75;
+}
+
+.clearBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.83rem;
+  color: #aaa;
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+
+.clearBtn:hover {
+  color: #e06c75;
+}
