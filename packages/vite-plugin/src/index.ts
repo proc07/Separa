@@ -43,6 +43,7 @@ interface DependencyInfo {
   readonly optional?: boolean;
   readonly multiple?: boolean;
   readonly qualifier?: string;
+  readonly isProperty?: boolean;
 }
 
 interface RuntimeImport {
@@ -163,33 +164,33 @@ function explicitServiceToken(checker: ts.TypeChecker, node: ts.ClassDeclaration
   return token ? expressionSymbol(checker, token.initializer, `@Service({ token }) on ${node.name?.text ?? "anonymous service"}`) : undefined;
 }
 
-function explicitDependencyToken(checker: ts.TypeChecker, parameter: ts.ParameterDeclaration): ts.Symbol | undefined {
-  const call = decoratorCall(parameter, "Inject") ?? decoratorCall(parameter, "Optional") ?? decoratorCall(parameter, "InjectMany");
+function explicitDependencyToken(checker: ts.TypeChecker, node: ts.ParameterDeclaration | ts.PropertyDeclaration): ts.Symbol | undefined {
+  const call = decoratorCall(node, "Inject") ?? decoratorCall(node, "Optional") ?? decoratorCall(node, "InjectMany") ?? decoratorCall(node, "Autowired");
   const token = call?.arguments[0];
-  return token ? expressionSymbol(checker, token, `@Inject() on constructor parameter ${parameter.name.getText()}`) : undefined;
+  return token ? expressionSymbol(checker, token, `@Inject() on ${node.name.getText()}`) : undefined;
 }
 
-function dependencyFlags(parameter: ts.ParameterDeclaration): Pick<DependencyInfo, "optional" | "multiple"> {
-  if (decoratorCall(parameter, "Optional")) return { optional: true };
-  if (decoratorCall(parameter, "InjectMany")) return { multiple: true };
+function dependencyFlags(node: ts.ParameterDeclaration | ts.PropertyDeclaration): Pick<DependencyInfo, "optional" | "multiple"> {
+  if (decoratorCall(node, "Optional")) return { optional: true };
+  if (decoratorCall(node, "InjectMany")) return { multiple: true };
   return {};
 }
 
-function dependencyQualifier(parameter: ts.ParameterDeclaration): string | undefined {
-  const call = decoratorCall(parameter, "Qualifier");
+function dependencyQualifier(node: ts.ParameterDeclaration | ts.PropertyDeclaration): string | undefined {
+  const call = decoratorCall(node, "Qualifier");
   const value = call?.arguments[0];
   if (!value) return undefined;
-  if (!ts.isStringLiteral(value)) throw new Error(`[Separa] @Qualifier() on parameter ${parameter.name.getText()} requires a string.`);
+  if (!ts.isStringLiteral(value)) throw new Error(`[Separa] @Qualifier() on ${node.name.getText()} requires a string.`);
   return value.text;
 }
 
 function analyzedDependencyType(
   checker: ts.TypeChecker,
-  parameter: ts.ParameterDeclaration,
+  node: ts.ParameterDeclaration | ts.PropertyDeclaration,
 ): { readonly symbol?: ts.Symbol; readonly optional: boolean; readonly multiple: boolean } {
   // 问号或 undefined 联合类型表示 Optional；数组/元组表示多重注入。
-  const declaredType = checker.getTypeAtLocation(parameter);
-  const optional = !!parameter.questionToken || (declaredType.isUnion() && declaredType.types.some((type) => (type.flags & ts.TypeFlags.Undefined) !== 0));
+  const declaredType = checker.getTypeAtLocation(node);
+  const optional = !!node.questionToken || (declaredType.isUnion() && declaredType.types.some((type) => (type.flags & ts.TypeFlags.Undefined) !== 0));
   const type = optional ? checker.getNonNullableType(declaredType) : declaredType;
   const multiple = checker.isArrayType(type) || checker.isTupleType(type) || type.symbol?.name === "ReadonlyArray";
   const dependencyType = multiple && (type.flags & ts.TypeFlags.Object) !== 0 ? checker.getTypeArguments(type as ts.TypeReference)[0] : type;
@@ -285,7 +286,7 @@ function collectServices(program: ts.Program, root: string, options: SeparaPlugi
           .map((contract) => canonicalSymbol(checker, contract)) ?? [];
 
       const constructor = statement.members.find(ts.isConstructorDeclaration);
-      const dependencies =
+      const dependencies: DependencyInfo[] =
         constructor?.parameters.map((parameter) => {
           const analyzed = analyzedDependencyType(checker, parameter);
           const explicitToken = explicitDependencyToken(checker, parameter);
@@ -306,6 +307,32 @@ function collectServices(program: ts.Program, root: string, options: SeparaPlugi
           };
         }) ?? [];
 
+      for (const member of statement.members) {
+        if (ts.isPropertyDeclaration(member)) {
+          const propertyDecorators = decoratorsOf(member);
+          const injectDecorator = propertyDecorators.find((item) => {
+            const dec = decoratorName(item);
+            return dec === "Inject" || dec === "Autowired" || dec === "Optional" || dec === "InjectMany";
+          });
+          if (injectDecorator) {
+            const analyzed = analyzedDependencyType(checker, member);
+            const explicitToken = explicitDependencyToken(checker, member);
+            if (analyzed.symbol || explicitToken) {
+              const flags = dependencyFlags(member);
+              const qualifier = dependencyQualifier(member);
+              dependencies.push({
+                typeSymbol: analyzed.symbol ?? explicitToken!,
+                ...(explicitToken ? { explicitToken } : {}),
+                ...(flags.optional || analyzed.optional ? { optional: true } : {}),
+                ...(flags.multiple || analyzed.multiple ? { multiple: true } : {}),
+                ...(qualifier ? { qualifier } : {}),
+                isProperty: true,
+              });
+            }
+          }
+        }
+      }
+
       const stateKeys: string[] = [];
       const methodKeys: string[] = [];
 
@@ -315,8 +342,14 @@ function collectServices(program: ts.Program, root: string, options: SeparaPlugi
         const name = propertyName(member.name);
         if (!name) continue;
         if (ts.isPropertyDeclaration(member)) {
-          if (hasModifier(member, ts.SyntaxKind.ReadonlyKeyword)) continue;
-          if (decoratorsOf(member).some((item) => decoratorName(item) === "NonReactive")) continue;
+          if (
+            decoratorsOf(member).some((item) => {
+              const dec = decoratorName(item);
+              return dec === "NonReactive" || dec === "Inject" || dec === "Autowired" || dec === "Optional" || dec === "InjectMany";
+            })
+          ) {
+            continue;
+          }
           const type = checker.getTypeAtLocation(member);
           if (type.getCallSignatures().length > 0) methodKeys.push(name);
           else stateKeys.push(name);
@@ -492,8 +525,13 @@ function generateRegistry(program: ts.Program, root: string, options: SeparaPlug
     return generatedContract ? contractTokens.get(generatedContract)! : `Service${serviceIndex.get(service)}`;
   };
 
+function isContainerSymbol(symbol: ts.Symbol): boolean {
+  return symbol.name === "SeparaContainer" || symbol.name === "ServiceContainer";
+}
+
   // 在构建期完成候选选择和歧义诊断，避免容器运行后才暴露缺失或多实现错误。
   const dependencyTargets = (dependency: DependencyInfo, owner: ServiceInfo): ServiceInfo[] => {
+    if (isContainerSymbol(dependency.typeSymbol)) return [];
     if (dependency.explicitToken) {
       const candidates = explicitTokenOwners.get(dependency.explicitToken) ?? [];
       if (!dependency.multiple && candidates.length > 1) {
@@ -512,7 +550,7 @@ function generateRegistry(program: ts.Program, root: string, options: SeparaPlug
     const qualifier = dependency.qualifier ?? configuredQualifier;
     const candidates = qualifier ? allCandidates.filter((candidate) => candidate.qualifier === qualifier) : allCandidates;
     if (candidates.length === 0) {
-      if (dependency.optional || dependency.multiple) return [];
+      if (dependency.optional || dependency.multiple || dependency.isProperty) return [];
       const qualifierDescription = qualifier ? ` with qualifier ${JSON.stringify(qualifier)}` : "";
       throw new Error(`[Separa] Missing implementation for ${checker.getFullyQualifiedName(dependency.typeSymbol)}${qualifierDescription}, required by ${owner.id}.`);
     }
@@ -525,11 +563,13 @@ function generateRegistry(program: ts.Program, root: string, options: SeparaPlug
   };
 
   const resolveDependency = (dependency: DependencyInfo, owner: ServiceInfo): string => {
+    if (isContainerSymbol(dependency.typeSymbol)) return "SeparaContainer";
     if (dependency.explicitToken) return runtimeTokenNames.get(dependency.explicitToken)!;
     const target = dependencyTargets(dependency, owner)[0];
     if (!target) {
       const contractToken = contractTokens.get(dependency.typeSymbol);
       if (contractToken && (dependency.optional || dependency.multiple)) return contractToken;
+      if (dependency.isProperty) return "undefined";
       throw new Error(`[Separa] Cannot resolve dependency required by ${owner.id}.`);
     }
     return serviceToken(target);
@@ -561,6 +601,9 @@ function generateRegistry(program: ts.Program, root: string, options: SeparaPlug
       service.multi ||
       service.interfaces.some((contract) => (implementations.get(contract)?.length ?? 0) > 1 && contractTokens.has(contract));
     const dependencies = service.dependencies.map((dependency) => {
+      if (isContainerSymbol(dependency.typeSymbol)) {
+        return { dependency, token: "SeparaContainer", qualifier: undefined, isContainer: true };
+      }
       const targets = dependencyTargets(dependency, service);
       const declaration = dependency.typeSymbol.declarations?.[0];
       const contractId = normalizedId(root, declaration?.getSourceFile().fileName ?? "unknown", dependency.typeSymbol.name);
@@ -569,14 +612,20 @@ function generateRegistry(program: ts.Program, root: string, options: SeparaPlug
         options.defaultBindings?.[contractId] ??
         options.defaultBindings?.[dependency.typeSymbol.name] ??
         (!dependency.multiple && targets.length === 1 ? targets[0]?.qualifier : undefined);
-      return { dependency, token: resolveDependency(dependency, service), qualifier };
+      return { dependency, token: resolveDependency(dependency, service), qualifier, isContainer: false };
     });
-    const descriptors = dependencies.map(
-      ({ dependency, token: dependencyToken, qualifier }) =>
-        `{ token: ${dependencyToken}${dependency.optional ? ", optional: true" : ""}${dependency.multiple ? ", multiple: true" : ""}${qualifier ? `, qualifier: ${JSON.stringify(qualifier)}` : ""} }`,
-    );
-    const args = dependencies
-      .map(({ dependency, token: dependencyToken, qualifier }) => {
+    const descriptors = dependencies
+      .filter(({ token }) => token !== "undefined")
+      .map(
+        ({ dependency, token: dependencyToken, qualifier, isContainer }) =>
+          isContainer
+            ? `{ token: "container" }`
+            : `{ token: ${dependencyToken}${dependency.optional ? ", optional: true" : ""}${dependency.multiple ? ", multiple: true" : ""}${qualifier ? `, qualifier: ${JSON.stringify(qualifier)}` : ""} }`,
+      );
+    const constructorDependencies = dependencies.filter((d) => !d.dependency.isProperty);
+    const args = constructorDependencies
+      .map(({ dependency, token: dependencyToken, qualifier, isContainer }) => {
+        if (isContainer) return "container";
         if (dependency.multiple) return `container.getAll(${dependencyToken})`;
         if (qualifier) {
           return dependency.optional

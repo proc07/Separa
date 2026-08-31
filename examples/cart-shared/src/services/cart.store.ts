@@ -1,4 +1,4 @@
-import { Inject, Service } from "@separa/core";
+import { Autowired, Service } from "@separa/core";
 import { SeparaContainer } from "@separa/ioc-inversify";
 import { INITIAL_CART_ITEMS } from "../constants";
 import { CartLogService, CouponService, CurrencyService, TaxService } from "./global.services";
@@ -18,36 +18,59 @@ export interface ItemScopeEntry {
 @Service({ scope: "singleton" })
 export class CartStoreService {
   itemScopes: ItemScopeEntry[] = [];
-  private _containers = new Map<string, SeparaContainer>();
 
-  constructor(
-    @Inject(CartLogService) private logService: CartLogService,
-    @Inject(CurrencyService) private currencyService: CurrencyService,
-    @Inject(TaxService) private taxService: TaxService,
-    @Inject(CouponService) private couponService: CouponService,
-  ) {}
+  /** 各商品行专属子容器的索引账本 (Key: 商品ID, Value: 子容器) */
+  private _childContainers = new Map<string, SeparaContainer>();
+
+  @Autowired()
+  private logService!: CartLogService;
+
+  @Autowired()
+  private currencyService!: CurrencyService;
+
+  @Autowired()
+  private taxService!: TaxService;
+
+  @Autowired()
+  private couponService!: CouponService;
+
+  /** 根容器自身，用于调用 rootContainer.createScope() 派生子容器 */
+  @Autowired()
+  private rootContainer!: SeparaContainer;
 
   /** 获取指定商品行所绑定的子容器实例 */
+  getChildContainer(id: string): SeparaContainer | undefined {
+    return this._childContainers.get(id);
+  }
+
+  /** 兼容旧版命名调用 */
   getContainer(id: string): SeparaContainer | undefined {
-    return this._containers.get(id);
+    return this.getChildContainer(id);
   }
 
   /**
-   * 初始化默认商品
+   * 生命周期钩子：容器解析该服务时自动初始化默认商品
    */
-  init(rootContainer: SeparaContainer): void {
+  onInit(): void {
     if (this.itemScopes.length > 0) return;
     for (const itemProps of INITIAL_CART_ITEMS) {
-      this.addItem(rootContainer, itemProps);
+      this.addItem(itemProps);
     }
   }
 
   /**
-   * 向购物车新增一件商品（动态创建专属子容器）
+   * 兼容手动初始化调用
    */
-  addItem(rootContainer: SeparaContainer, props: CartItemInitialProps): ItemScopeEntry {
-    const scope = createItemScope(rootContainer, props);
-    this._containers.set(props.id, scope.container);
+  init(): void {
+    this.onInit();
+  }
+
+  /**
+   * 向购物车新增一件商品（由 Store 内部根容器自动创建专属子容器，无需 UI 传入容器）
+   */
+  addItem(props: CartItemInitialProps): ItemScopeEntry {
+    const scope = createItemScope(this.rootContainer, props);
+    this._childContainers.set(props.id, scope.container);
 
     const entry: ItemScopeEntry = {
       id: props.id,
@@ -64,10 +87,10 @@ export class CartStoreService {
    * 移除商品并销毁该商品行的子容器（释放资源）
    */
   async removeItem(id: string): Promise<void> {
-    const container = this._containers.get(id);
-    if (container) {
-      this._containers.delete(id);
-      await container.dispose();
+    const child = this._childContainers.get(id);
+    if (child) {
+      this._childContainers.delete(id);
+      await child.dispose();
     }
 
     const target = this.itemScopes.find((s) => s.id === id);
@@ -76,6 +99,17 @@ export class CartStoreService {
     }
 
     this.itemScopes = this.itemScopes.filter((s) => s.id !== id);
+  }
+
+  /**
+   * 清空购物车并释放所有子容器资源
+   */
+  async clear(): Promise<void> {
+    for (const child of this._childContainers.values()) {
+      await child.dispose();
+    }
+    this._childContainers.clear();
+    this.itemScopes = [];
   }
 
   /**

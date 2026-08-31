@@ -6,6 +6,7 @@ import {
   enhanceService,
   getServiceMetadata,
   identifierToken,
+  injectProperties,
   isReactiveService,
   isToken,
   tokenDescription,
@@ -45,6 +46,19 @@ export function provide<T extends object>(token: ServiceIdentifier<T>): Provider
   };
 }
 
+function isContainerOptions(value: unknown): value is ContainerOptions {
+  if (!value || typeof value !== "object") return false;
+  return "definitions" in value || "overrides" in value || "parent" in value;
+}
+
+function isServiceDefinition(value: unknown): value is ServiceDefinition {
+  return typeof value === "object" && value !== null && "id" in value && "factory" in value;
+}
+
+function isServiceOverride(value: unknown): value is ServiceOverride {
+  return typeof value === "object" && value !== null && "token" in value && ("implementation" in value || "value" in value);
+}
+
 /** 将 Core 服务身份转换为 Inversify 接受的 class 或 symbol，同时隐匿引擎类型。 */
 function identifier<T>(value: ServiceIdentifier<T>): ConcreteConstructor<T> | symbol {
   const token = identifierToken(value);
@@ -67,6 +81,9 @@ export class SeparaContainer implements ServiceContainer {
   constructor(options: ContainerOptions = {}) {
     this._parent = options.parent;
     this._container = new Container(options.parent ? { parent: options.parent._container } : {});
+
+    // 默认自绑定容器实例，使需要动态创建子作用域的服务可直接注入 SeparaContainer
+    this._container.bind<SeparaContainer>(SeparaContainer).toDynamicValue(() => this);
 
     // 先索引 Override，使替换在定义注册阶段完成，而不是注册后再重新绑定。
     const overrides = new Map((options.overrides ?? []).map((override) => [identifier(override.token), override]));
@@ -201,11 +218,36 @@ export class SeparaContainer implements ServiceContainer {
     return [...current, ...qualified];
   }
 
-  createScope(definitionsOrOptions: readonly ServiceDefinition[] | ContainerOptions = []): SeparaContainer {
-    if (Array.isArray(definitionsOrOptions)) {
-      return new SeparaContainer({ definitions: definitionsOrOptions, parent: this });
+  createScope(...args: (object | readonly object[] | ContainerOptions)[]): SeparaContainer {
+    this._assertActive();
+    if (args.length === 0) {
+      return new SeparaContainer({ parent: this });
     }
-    return new SeparaContainer({ ...definitionsOrOptions, parent: this });
+
+    if (args.length === 1 && isContainerOptions(args[0])) {
+      return new SeparaContainer({ ...(args[0] as ContainerOptions), parent: this });
+    }
+
+    const items = args.flatMap((arg) => (Array.isArray(arg) ? arg : [arg]));
+    const definitions: ServiceDefinition[] = [];
+    const overrides: ServiceOverride[] = [];
+
+    for (const item of items) {
+      if (!item || typeof item !== "object") continue;
+
+      if (isServiceDefinition(item)) {
+        definitions.push(item);
+      } else if (isServiceOverride(item)) {
+        overrides.push(item);
+      } else {
+        const ctor = (item as object).constructor;
+        if (ctor && ctor !== Object) {
+          overrides.push({ token: ctor as ConcreteConstructor<any>, value: item as any });
+        }
+      }
+    }
+
+    return new SeparaContainer({ definitions, overrides, parent: this });
   }
 
   /** 动态模块使用子容器隔离绑定；模块服务仍可解析宿主容器中的契约。 */
@@ -254,9 +296,19 @@ export class SeparaContainer implements ServiceContainer {
     if (errors.length) throw new AggregateError(errors, "One or more services failed to dispose.");
   }
 
+  resolve<T extends object>(target: ConcreteConstructor<T>, ...args: any[]): T {
+    this._assertActive();
+    const instance = new (target as new (...args: any[]) => T)(...args);
+    injectProperties(instance, this);
+    const enhanced = this._enhanceOverrideValue(instance);
+    this._created.add(enhanced);
+    return enhanced;
+  }
+
   private _registerOverride<T extends object>(override: ServiceOverride<T>): void {
     const id = identifier(override.token);
     if (override.value) {
+      injectProperties(override.value, this);
       const value = this._enhanceOverrideValue(override.value);
       this._created.add(value);
       this._container.bind<T>(id).toConstantValue(value);
@@ -267,6 +319,7 @@ export class SeparaContainer implements ServiceContainer {
       .bind<T>(id)
       .toDynamicValue(() => {
         const instance = new override.implementation!();
+        injectProperties(instance, this);
         const enhanced = this._enhanceOverrideValue(instance);
         this._created.add(enhanced);
         return enhanced;
@@ -339,6 +392,7 @@ export class SeparaContainer implements ServiceContainer {
 
   private _createInstance<T extends object>(definition: ServiceDefinition<T>, container: ServiceContainer = this): T | Promise<T> {
     const enhance = (instance: T): T => {
+      injectProperties(instance, container);
       const hasKeys = (definition.stateKeys?.length ?? 0) > 0 || (definition.methodKeys?.length ?? 0) > 0;
       if (hasKeys && !isReactiveService(instance)) {
         return enhanceService(instance, {

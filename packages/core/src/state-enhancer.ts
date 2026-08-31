@@ -1,4 +1,4 @@
-import { proxy, snapshot, subscribe } from "valtio/vanilla";
+import { proxy, ref, snapshot, subscribe } from "valtio/vanilla";
 import type { EnhanceOptions } from "./types";
 
 /** UI 适配器和容器用于观察、快照读取及释放响应式 Service 的运行时控制面。 */
@@ -48,6 +48,13 @@ function collectNestedReactiveServices(target: unknown, seen = new Set<object>()
 export function enhanceService<T extends object>(instance: T, options: EnhanceOptions<T>): T {
   if (controllers.has(instance)) return instance;
 
+  // 将服务实例本身标记为 ref，防止作为子对象嵌套到其他服务状态时被重复代理或深克隆报错
+  try {
+    ref(instance);
+  } catch {
+    // 忽略不可扩展对象的标记失败
+  }
+
   const stateKeys = [...new Set(options.stateKeys as readonly PropertyKey[])];
   const state = proxy<Record<PropertyKey, unknown>>({});
   const nestedSubs = new Map<PropertyKey, Set<() => void>>();
@@ -60,7 +67,11 @@ export function enhanceService<T extends object>(instance: T, options: EnhanceOp
   const emitChange = () => {
     if (disposed) return;
     version += 1;
-    currentSnapshot = snapshot(state);
+    try {
+      currentSnapshot = snapshot(state);
+    } catch {
+      currentSnapshot = { ...state };
+    }
     for (const listener of [...listeners]) listener();
   };
 

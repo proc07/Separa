@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  Autowired,
   Service,
   Inject,
   Optional,
@@ -68,5 +69,57 @@ describe("@separa/core - decorators", () => {
   it("returns undefined for undecorated classes", () => {
     class Undecorated {}
     expect(getServiceMetadata(Undecorated)).toBeUndefined();
+  });
+
+  it("supports property injection via @Inject, @Optional, and @InjectMany on class fields", () => {
+    const p1Token = createToken<string>("P1");
+    const p2Token = createToken<string>("P2");
+
+    class ServiceWithProperties {
+      @Inject(p1Token)
+      prop1!: string;
+
+      @Optional(p2Token)
+      prop2?: string;
+    }
+
+    const meta = getServiceMetadata(ServiceWithProperties);
+    expect(meta).toBeUndefined(); // not decorated with @Service yet
+
+    // check metadata directly
+    @Service()
+    class DecoratedWithProperties {
+      @Inject(p1Token)
+      prop1!: string;
+
+      @Optional(p2Token)
+      prop2?: string;
+    }
+
+    const decoratedMeta = getServiceMetadata(DecoratedWithProperties);
+    expect(decoratedMeta?.propertyInjections?.get("prop1")).toEqual({ token: p1Token });
+    expect(decoratedMeta?.propertyInjections?.get("prop2")).toEqual({ token: p2Token, optional: true });
+    expect(decoratedMeta?.nonReactiveKeys.has("prop1")).toBe(true);
+    expect(decoratedMeta?.nonReactiveKeys.has("prop2")).toBe(true);
+  });
+
+  it("supports @Autowired() and zero-argument @Inject() via TypeScript metadata reflection", () => {
+    class InjectedDep {}
+
+    @Service()
+    class ServiceWithAutowired {
+      @Autowired()
+      dep1!: InjectedDep;
+
+      @Inject()
+      dep2!: InjectedDep;
+    }
+
+    const meta = getServiceMetadata(ServiceWithAutowired);
+    expect(meta).toBeDefined();
+    expect(meta?.propertyInjections?.get("dep1")?.token).toBe(InjectedDep);
+    expect(meta?.propertyInjections?.get("dep2")?.token).toBe(InjectedDep);
+    expect(meta?.nonReactiveKeys.has("dep1")).toBe(true);
+    expect(meta?.nonReactiveKeys.has("dep2")).toBe(true);
   });
 });

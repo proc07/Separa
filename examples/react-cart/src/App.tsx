@@ -1,23 +1,17 @@
-import React, { useEffect } from "react";
-import { SeparaProvider, useContainer, useService } from "@separa/react";
-import { CartStoreService, SeparaContainer } from "@separa/example-cart-shared";
+import React from "react";
+import { SeparaProvider, useService } from "@separa/react";
+import { CartStoreService } from "@separa/example-cart-shared";
 import { GlobalHeader } from "./components/GlobalHeader";
 import { CartItemRow } from "./components/CartItemRow";
 import { CartSummary } from "./components/CartSummary";
 import "./App.css";
 
 export default function App() {
-  const rootContainer = useContainer() as SeparaContainer;
   const cartStore = useService(CartStoreService);
-
-  // 初始化加载默认商品行
-  useEffect(() => {
-    cartStore.init(rootContainer);
-  }, [cartStore, rootContainer]);
 
   function handleAddNewItem() {
     const id = `item-${Date.now().toString().slice(-4)}`;
-    cartStore.addItem(rootContainer, {
+    cartStore.addItem({
       id,
       name: `新增订制商品 #${id}`,
       price: Math.floor(Math.random() * 2000) + 100,
@@ -67,7 +61,7 @@ export default function App() {
               </div>
             ) : (
               cartStore.itemScopes.map((scopeEntry) => {
-                const childContainer = cartStore.getContainer(scopeEntry.id);
+                const childContainer = cartStore.getChildContainer(scopeEntry.id);
                 if (!childContainer) return null;
                 return (
                   // 💡 关键：为每个商品行注入其独立的子容器 (Child Scope)

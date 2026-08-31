@@ -15,7 +15,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean --external @separa/core",
+    "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

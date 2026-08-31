@@ -1,5 +1,5 @@
 import { enhanceService } from "./state-enhancer";
-import type { ConcreteConstructor, ServiceDefinition, ServiceMetadata } from "./types";
+import type { ConcreteConstructor, DependencyDescriptor, ServiceDefinition, ServiceMetadata, ServiceToken } from "./types";
 import { getServiceMetadata } from "./decorators";
 import { tokenDescription } from "./tokens";
 
@@ -18,23 +18,30 @@ function prototypeMethods(target: ConcreteConstructor): PropertyKey[] {
   return keys;
 }
 
+function isDependencyDescriptor(value: unknown): value is DependencyDescriptor {
+  return typeof value === "object" && value !== null && "token" in value;
+}
+
 export function defineService<T extends object>(
   metadata: ServiceMetadata<T>,
   stateKeys: readonly (keyof T)[] = [],
   methodKeys: readonly (keyof T)[] = prototypeMethods(metadata.target) as (keyof T)[],
+  explicitDependencies?: readonly DependencyDescriptor[],
 ): ServiceDefinition<T> {
   // 这是无编译插件路径的兼容推断。默认参数和 rest 参数会影响 Function.length，
   // 因此完整应用应优先使用 Vite 插件直接生成准确的依赖描述。
-  const dependencyCount = metadata.target.length;
-  const dependencies = Array.from({ length: dependencyCount }, (_, index) => {
-    const dependency = metadata.injections.get(index);
-    if (!dependency) {
-      throw new Error(
-        `Missing injection token for ${metadata.target.name} constructor parameter #${index}. Use @Inject() or the Separa Vite plugin.`,
-      );
-    }
-    return dependency;
-  });
+  const dependencyCount = explicitDependencies?.length ?? metadata.target.length;
+  const dependencies =
+    explicitDependencies ??
+    Array.from({ length: dependencyCount }, (_, index) => {
+      const dependency = metadata.injections.get(index);
+      if (!dependency) {
+        throw new Error(
+          `Missing injection token for ${metadata.target.name} constructor parameter #${index}. Use @Inject() or the Separa Vite plugin.`,
+        );
+      }
+      return dependency;
+    });
 
   return {
     id: tokenDescription(metadata.token),
@@ -69,8 +76,13 @@ export function defineService<T extends object>(
 }
 
 /** 使用 @Service() 的运行时元数据创建定义，主要用于测试和无插件环境。 */
-export function defineDecoratedService<T extends object>(target: ConcreteConstructor<T>, stateKeys: readonly (keyof T)[] = []): ServiceDefinition<T> {
+export function defineDecoratedService<T extends object>(
+  target: ConcreteConstructor<T>,
+  stateKeys: readonly (keyof T)[] = [],
+  dependencies?: readonly (DependencyDescriptor | ServiceToken<any>)[],
+): ServiceDefinition<T> {
   const metadata = getServiceMetadata(target);
   if (!metadata) throw new Error(`${target.name} is not decorated with @Service().`);
-  return defineService(metadata, stateKeys);
+  const normalizedDependencies = dependencies?.map((dep) => (isDependencyDescriptor(dep) ? dep : { token: dep }));
+  return defineService(metadata, stateKeys, undefined, normalizedDependencies);
 }

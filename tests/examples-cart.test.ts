@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defineDecoratedService } from "@separa/core";
-import { createContainer } from "@separa/ioc-inversify";
+import { createContainer, SeparaContainer } from "@separa/ioc-inversify";
 import {
   CartLogService,
   CartStoreService,
@@ -21,20 +21,23 @@ describe("Scoped Shopping Cart (Child Containers)", () => {
         defineDecoratedService(TaxService, ["currentRegion"]),
         defineDecoratedService(CouponService, ["selectedCouponId"]),
         defineDecoratedService(CartStoreService, ["itemScopes"]),
-        defineDecoratedService(ItemCalculatorService),
+        defineDecoratedService(ItemCalculatorService, []),
       ],
     });
   }
 
-  it("creates child scopes with isolated ItemService instances sharing parent services", () => {
+  it("creates child scopes with isolated ItemService instances sharing parent services", async () => {
     const root = buildRootContainer();
     const cartStore = root.get(CartStoreService);
     const currency = root.get(CurrencyService);
     const tax = root.get(TaxService);
     const log = root.get(CartLogService);
 
+    // 0. Start with clean cart
+    await cartStore.clear();
+
     // 1. Add two items
-    const scope1 = cartStore.addItem(root, {
+    const scope1 = cartStore.addItem({
       id: "item-1",
       name: "MacBook Pro",
       price: 20000,
@@ -42,7 +45,7 @@ describe("Scoped Shopping Cart (Child Containers)", () => {
       category: "Laptop",
     });
 
-    const scope2 = cartStore.addItem(root, {
+    const scope2 = cartStore.addItem({
       id: "item-2",
       name: "iPhone",
       price: 8000,
@@ -51,8 +54,8 @@ describe("Scoped Shopping Cart (Child Containers)", () => {
     });
 
     // 2. Verify child containers resolve their respective ItemService
-    expect(cartStore.getContainer(scope1.id)!.get(ItemToken).name).toBe("MacBook Pro");
-    expect(cartStore.getContainer(scope2.id)!.get(ItemToken).name).toBe("iPhone");
+    expect(cartStore.getChildContainer(scope1.id)!.get(ItemService).name).toBe("MacBook Pro");
+    expect(cartStore.getChildContainer(scope2.id)!.get(ItemService).name).toBe("iPhone");
 
     // 3. Verify calculators resolve the correct item & parent services
     // Item 1: 20000 * 1 = 20000 CNY, Tax (13%) = 2600 CNY, Total = 22600 CNY
@@ -89,7 +92,10 @@ describe("Scoped Shopping Cart (Child Containers)", () => {
     const cartStore = root.get(CartStoreService);
     const couponService = root.get(CouponService);
 
-    const s1 = cartStore.addItem(root, {
+    // 0. Start with clean cart
+    await cartStore.clear();
+
+    const s1 = cartStore.addItem({
       id: "a",
       name: "Item A",
       price: 1000,
@@ -97,7 +103,7 @@ describe("Scoped Shopping Cart (Child Containers)", () => {
       category: "Test",
     });
 
-    const s2 = cartStore.addItem(root, {
+    const s2 = cartStore.addItem({
       id: "b",
       name: "Item B",
       price: 2000,

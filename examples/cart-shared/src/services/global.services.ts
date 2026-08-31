@@ -1,4 +1,4 @@
-import { Inject, Service } from "@separa/core";
+import { Autowired, Service } from "@separa/core";
 import { AVAILABLE_COUPONS, CURRENCIES, TAX_REGIONS } from "../constants";
 import type { Coupon, CurrencyCode, CurrencyInfo, TaxRegion, TaxRegionInfo } from "../types";
 
@@ -28,12 +28,13 @@ export class CartLogService {
 export class CurrencyService {
   currentCurrency: CurrencyCode = "CNY";
 
-  constructor(@Inject(CartLogService) private logService: CartLogService) {}
+  @Autowired()
+  private logService!: CartLogService;
 
   setCurrency(code: CurrencyCode): void {
     if (this.currentCurrency === code) return;
     this.currentCurrency = code;
-    this.logService.log(`🌐 切换全局结算货币为: ${code} (${this.info.symbol}), 汇率: ${this.info.rateAgainstCNY}`);
+    this.logService?.log(`🌐 切换全局结算货币为: ${code} (${this.info.symbol}), 汇率: ${this.info.rateAgainstCNY}`);
   }
 
   get info(): CurrencyInfo {
@@ -62,12 +63,13 @@ export class CurrencyService {
 export class TaxService {
   currentRegion: TaxRegion = "CN";
 
-  constructor(@Inject(CartLogService) private logService: CartLogService) {}
+  @Autowired()
+  private logService!: CartLogService;
 
   setRegion(region: TaxRegion): void {
     if (this.currentRegion === region) return;
     this.currentRegion = region;
-    this.logService.log(`🏛️ 切换税区为: ${this.info.name}, 标准税率: ${(this.info.standardRate * 100).toFixed(2)}%`);
+    this.logService?.log(`🏛️ 切换税区为: ${this.info.name}, 标准税率: ${(this.info.standardRate * 100).toFixed(2)}%`);
   }
 
   get info(): TaxRegionInfo {
@@ -86,12 +88,13 @@ export class TaxService {
 export class CouponService {
   selectedCouponId = "none";
 
-  constructor(@Inject(CartLogService) private logService: CartLogService) {}
+  @Autowired()
+  private logService!: CartLogService;
 
   selectCoupon(couponId: string): void {
     if (this.selectedCouponId === couponId) return;
     this.selectedCouponId = couponId;
-    this.logService.log(`🎟️ 应用优惠券: ${this.currentCoupon.name}`);
+    this.logService?.log(`🎟️ 应用优惠券: ${this.currentCoupon.name}`);
   }
 
   get currentCoupon(): Coupon {

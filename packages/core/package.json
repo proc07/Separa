@@ -15,10 +15,11 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "reflect-metadata": "^0.2.2",
     "valtio": "^2.1.5"
   },
   "devDependencies": {

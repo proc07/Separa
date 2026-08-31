@@ -52,6 +52,7 @@ export interface ServiceMetadata<T = object> {
   readonly qualifier?: string;
   readonly profile?: string | readonly string[];
   readonly injections: ReadonlyMap<number, DependencyDescriptor>;
+  readonly propertyInjections?: ReadonlyMap<PropertyKey, DependencyDescriptor>;
   readonly nonReactiveKeys: ReadonlySet<PropertyKey>;
 }
 

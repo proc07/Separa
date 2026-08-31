@@ -1,25 +1,19 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { useContainer, useService } from "@separa/vue";
-import { CartStoreService, type SeparaContainer } from "@separa/example-cart-shared";
+import { useService } from "@separa/vue";
+import { CartStoreService } from "@separa/example-cart-shared";
 import GlobalHeader from "./components/GlobalHeader.vue";
 import CartItemRow from "./components/CartItemRow.vue";
 import CartSummary from "./components/CartSummary.vue";
 import ScopedItemProvider from "./components/ScopedItemProvider.vue";
 import "./App.css";
 
-const rootContainer = useContainer() as SeparaContainer;
 const cartStore = useService(CartStoreService);
 
 const { itemScopes, selectedScopes, toggleSelectAll, addItem, removeItem } = cartStore;
 
-onMounted(() => {
-  cartStore.init(rootContainer);
-});
-
 function handleAddNewItem() {
   const id = `item-${Date.now().toString().slice(-4)}`;
-  addItem(rootContainer, {
+  addItem({
     id,
     name: `新增订制商品 #${id}`,
     price: Math.floor(Math.random() * 2000) + 100,
@@ -74,8 +68,8 @@ function handleAddNewItem() {
               :key="scopeEntry.id"
             >
               <ScopedItemProvider
-                v-if="cartStore.getContainer(scopeEntry.id)"
-                :container="cartStore.getContainer(scopeEntry.id)!"
+                v-if="cartStore.getChildContainer(scopeEntry.id)"
+                :container="cartStore.getChildContainer(scopeEntry.id)!"
               >
                 <CartItemRow :on-remove="(id) => removeItem(id)" />
               </ScopedItemProvider>

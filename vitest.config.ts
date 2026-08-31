@@ -1,7 +1,9 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
+import swc from "unplugin-swc";
 
 export default defineConfig({
+  plugins: [swc.vite()],
   resolve: {
     alias: {
       "@separa/core": path.resolve(__dirname, "packages/core/src/index.ts"),
