@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import { identifierToken } from "./handles";
+import { getReactiveController } from "./state-enhancer";
 import type { ConcreteConstructor, DependencyDescriptor, ServiceContainer, ServiceIdentifier, ServiceMetadata, ServiceOptions, ServiceToken } from "./types";
 
 interface MutableMetadata {
@@ -102,6 +103,11 @@ export function NonReactive(): PropertyDecorator {
 }
 
 /** 获取类声明的所有属性注入依赖。 */
+/**
+ * 获取类的属性注入映射。
+ * 💡 说明：在 TypeScript / SWC 输出中，__metadata("design:type", Type) 会在属性装饰器执行之后才附加到原型上。
+ * 因此在类定义完成后，通过本函数延迟读取 'design:type'，即可无需显式 Token 自动推导出属性的 Class 类型。
+ */
 export function getPropertyInjections(target: Function): ReadonlyMap<PropertyKey, DependencyDescriptor> {
   const value = metadata.get(target);
   if (!value) return new Map();
@@ -113,11 +119,17 @@ export function getPropertyInjections(target: Function): ReadonlyMap<PropertyKey
   return result;
 }
 
-/** 对实例执行属性注入，从容器中解析依赖并赋值。 */
+/** 
+ * 对实例执行属性注入，从容器中解析依赖并赋值。
+ * 针对 @Autowired() 零参数声明的字段，自动通过 TypeScript design:type 反射定位容器中的服务。
+ * 注入完成后，自动建立响应式依赖级联监听。
+ */
 export function injectProperties(instance: object, container: ServiceContainer): void {
   if (!instance || typeof instance !== "object") return;
   const target = instance.constructor;
   const injections = getPropertyInjections(target);
+  const controller = getReactiveController(instance);
+
   for (const [key, descriptor] of injections) {
     let token = descriptor.token;
     if (!token) {
@@ -129,16 +141,21 @@ export function injectProperties(instance: object, container: ServiceContainer):
         `[Separa] Cannot resolve property injection type for '${String(key)}' on ${target.name}. Ensure TypeScript 'emitDecoratorMetadata' is enabled or pass an explicit token.`,
       );
     }
+    let value: unknown;
     if (descriptor.multiple) {
-      (instance as any)[key] = container.getAll(token);
+      value = container.getAll(token);
     } else if (descriptor.qualifier) {
-      (instance as any)[key] = descriptor.optional
+      value = descriptor.optional
         ? container.tryGetQualified(token, descriptor.qualifier)
         : container.getQualified(token, descriptor.qualifier);
     } else if (descriptor.optional) {
-      (instance as any)[key] = container.tryGet(token);
+      value = container.tryGet(token);
     } else {
-      (instance as any)[key] = container.get(token);
+      value = container.get(token);
+    }
+    (instance as any)[key] = value;
+    if (controller && value) {
+      controller.linkDependency(key, value);
     }
   }
 }

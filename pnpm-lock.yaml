@@ -66,6 +66,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/core
     devDependencies:
+      '@separa/ioc-inversify':
+        specifier: workspace:*
+        version: link:../../packages/ioc-inversify
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -209,6 +212,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/core
     devDependencies:
+      '@separa/ioc-inversify':
+        specifier: workspace:*
+        version: link:../../packages/ioc-inversify
       typescript:
         specifier: ^5.8.3
         version: 5.8.3

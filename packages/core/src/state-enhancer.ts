@@ -7,6 +7,7 @@ export interface ReactiveServiceController {
   getVersion(): number;
   getSnapshot(): object;
   subscribe(listener: () => void): () => void;
+  linkDependency(key: PropertyKey, value: unknown): void;
   dispose(): void;
 }
 
@@ -60,19 +61,28 @@ export function enhanceService<T extends object>(instance: T, options: EnhanceOp
   const nestedSubs = new Map<PropertyKey, Set<() => void>>();
 
   let version = 0;
-  let currentSnapshot: object = snapshot(state);
+  let currentSnapshot: object = { ...snapshot(state), __v: 0 };
   const listeners = new Set<() => void>();
   let disposed = false;
+  // 防止循环依赖场景下 emitChange → 级联通知 → 再次 emitChange 导致无限循环
+  let isEmitting = false;
 
   const emitChange = () => {
-    if (disposed) return;
-    version += 1;
+    if (disposed || isEmitting) return;
+    isEmitting = true;
     try {
-      currentSnapshot = snapshot(state);
-    } catch {
-      currentSnapshot = { ...state };
+      version += 1;
+      let base: object;
+      try {
+        base = snapshot(state);
+      } catch {
+        base = state;
+      }
+      currentSnapshot = { ...base, __v: version };
+      for (const listener of [...listeners]) listener();
+    } finally {
+      isEmitting = false;
     }
-    for (const listener of [...listeners]) listener();
   };
 
   const syncNestedSubscriptions = (key: PropertyKey, value: unknown) => {
@@ -98,6 +108,15 @@ export function enhanceService<T extends object>(instance: T, options: EnhanceOp
     }
     nestedSubs.set(key, currentSubs);
   };
+
+  // 扫描初始属性（如构造函数注入的服务依赖）
+  for (const key of Reflect.ownKeys(instance)) {
+    if (key === "constructor") continue;
+    const val = (instance as any)[key];
+    if (val && typeof val === "object") {
+      syncNestedSubscriptions(key, val);
+    }
+  }
 
   // 将公开字段重定向到隐藏 Proxy，并自动接入嵌套级联响应式。
   for (const key of stateKeys) {
@@ -139,6 +158,9 @@ export function enhanceService<T extends object>(instance: T, options: EnhanceOp
       if (disposed) return () => undefined;
       listeners.add(listener);
       return () => listeners.delete(listener);
+    },
+    linkDependency(key, value) {
+      syncNestedSubscriptions(key, value);
     },
     dispose() {
       if (disposed) return;

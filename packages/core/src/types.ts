@@ -110,11 +110,15 @@ export interface ServiceModule {
 /** Core 与具体 IoC 适配器之间的最小解析和生命周期协议。 */
 export interface ServiceContainer {
   get<T>(identifier: ServiceIdentifier<T>): T;
+  bind?<T extends object>(identifier: ServiceIdentifier<T> | ConcreteConstructor<T>, ...args: any[]): T;
+  resolve?<T extends object>(target: ConcreteConstructor<T>, ...args: any[]): T;
   getQualified<T>(identifier: ServiceIdentifier<T>, qualifier: string): T;
   getAll<T>(identifier: ServiceIdentifier<T>): readonly T[];
   tryGet<T>(identifier: ServiceIdentifier<T>): T | undefined;
   tryGetQualified<T>(identifier: ServiceIdentifier<T>, qualifier: string): T | undefined;
   getAsync?<T>(identifier: ServiceIdentifier<T>): Promise<T>;
+  bindAsync?<T>(identifier: ServiceIdentifier<T>): Promise<T>;
+  resolveAsync?<T>(identifier: ServiceIdentifier<T>): Promise<T>;
   getQualifiedAsync?<T>(identifier: ServiceIdentifier<T>, qualifier: string): Promise<T>;
   getAllAsync?<T>(identifier: ServiceIdentifier<T>): Promise<readonly T[]>;
   loadModule?(module: ServiceModule): ServiceContainer;

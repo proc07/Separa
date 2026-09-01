@@ -80,7 +80,7 @@ export function CartItemRow({ onRemove }: CartItemRowProps) {
         <div className="subtotal-val">{calculator.formattedFinalTotal}</div>
         <div className="tax-hint">
           含税: {calculator.formattedTaxAmount}
-          {item.discountRate > 0 && ` (省 ${calculator.currencyService.format(calculator.itemDiscountAmountCNY)})`}
+          {item.discountRate > 0 && ` (省 ${calculator.formattedItemDiscount})`}
         </div>
       </div>
 

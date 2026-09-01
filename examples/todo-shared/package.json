@@ -7,10 +7,14 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "test": "vitest run"
+  },
   "dependencies": {
     "@separa/core": "workspace:*"
   },
   "devDependencies": {
+    "@separa/ioc-inversify": "workspace:*",
     "typescript": "^5.8.3"
   }
 }

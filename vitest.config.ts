@@ -17,7 +17,12 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
+    include: [
+      "tests/**/*.test.ts",
+      "tests/**/*.test.tsx",
+      "examples/**/tests/**/*.test.ts",
+      "examples/**/tests/**/*.test.tsx",
+    ],
     environment: "jsdom",
     coverage: {
       include: ["packages/*/src/**/*.ts"],

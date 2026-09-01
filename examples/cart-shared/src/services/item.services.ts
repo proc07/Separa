@@ -113,6 +113,11 @@ export class ItemCalculatorService {
     return this.currencyService.format(this.taxAmountCNY);
   }
 
+  /** 格式化单品折扣减免金额 */
+  get formattedItemDiscount(): string {
+    return this.currencyService.format(this.itemDiscountAmountCNY);
+  }
+
   /** 格式化最终含税小计 */
   get formattedFinalTotal(): string {
     return this.currencyService.format(this.finalTotalCNY);
@@ -132,8 +137,8 @@ export function createItemScope(
   // 2. 一行创建子作用域并注入 item（零 Token，零嵌套 DSL）
   const child = rootContainer.createScope(item);
 
-  // 3. 从子容器解析计算引擎（自动注入 child 的 item 和 parent 的 Tax/Currency）
-  const calculator = child.get(ItemCalculatorService);
+  // 3. 将当前子作用域与计算引擎直接 bind 绑定装配（自动注入 item + 全局 Tax/Currency）
+  const calculator = child.bind(ItemCalculatorService);
 
   return { container: child, item, calculator };
 }

@@ -798,6 +798,49 @@ export default function separa(options: SeparaPluginOptions = {}): Plugin {
     load(id) {
       return id === RESOLVED_VIRTUAL_ID ? generated : undefined;
     },
+    /**
+     * 💡 【问题原因与自动兼容处理】：
+     * Vite 开发服务（Dev Server）默认使用 esbuild 快速转译 .ts/.tsx 文件，
+     * 但 esbuild 原生不支持 TypeScript 的 'emitDecoratorMetadata' 选项，
+     * 导致生成的 JS 代码丢失了 __metadata("design:type", ClassType)，
+     * 从而使 @Autowired() 在浏览器运行时无法通过 Reflect.getMetadata("design:type") 自动反射出属性的类类型。
+     *
+     * 解决方案：
+     * 在 enforce: "pre" 阶段拦截含有 @Service / @Autowired / @Inject 的源码文件，
+     * 使用 TypeScript 编译器（ts.transpileModule）开启 experimentalDecorators 与 emitDecoratorMetadata 进行转译，
+     * 保证产物中完整包含装饰器类型元数据，实现开发者在 vite.config.ts 中零额外配置、开箱即用。
+     */
+    transform(code, id) {
+      if (id.includes("node_modules")) return null;
+      const cleanId = id.split("?")[0]!;
+      if (!/\.[cm]?[jt]sx?$/.test(cleanId)) return null;
+      if (
+        !code.includes("@Service") &&
+        !code.includes("@Autowired") &&
+        !code.includes("@Inject") &&
+        !code.includes("@Qualifier") &&
+        !code.includes("@Optional") &&
+        !code.includes("@InjectMany")
+      ) {
+        return null;
+      }
+
+      const result = ts.transpileModule(code, {
+        fileName: cleanId,
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2022,
+          module: ts.ModuleKind.ESNext,
+          experimentalDecorators: true,
+          emitDecoratorMetadata: true,
+          sourceMap: true,
+        },
+      });
+
+      return {
+        code: result.outputText,
+        map: result.sourceMapText ? JSON.parse(result.sourceMapText) : null,
+      };
+    },
     handleHotUpdate(context) {
       if (/\.[cm]?[jt]sx?$|\.(vue|svelte|astro)$/.test(context.file)) {
         rebuild();

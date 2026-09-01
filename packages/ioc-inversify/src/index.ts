@@ -148,6 +148,23 @@ export class SeparaContainer implements ServiceContainer {
     }
   }
 
+  /**
+   * 绑定并装配目标服务实例：
+   * 1. 若已注册在容器中，直接从容器解析获取 (get)；
+   * 2. 若传入未显式注册的类，自动实例化并执行属性依赖注入与响应式增强 (resolve)。
+   */
+  bind<T extends object>(tokenOrTarget: ServiceIdentifier<T>, ...args: any[]): T {
+    this._assertActive();
+    const id = identifier(tokenOrTarget);
+    if (this._container.isBound(id)) {
+      return this.get(tokenOrTarget);
+    }
+    if (typeof tokenOrTarget === "function") {
+      return this.resolve(tokenOrTarget as ConcreteConstructor<T>, ...args);
+    }
+    return this.get(tokenOrTarget);
+  }
+
   getAll<T>(token: ServiceIdentifier<T>): readonly T[] {
     this._assertActive();
     const id = identifier(token);
@@ -191,6 +208,14 @@ export class SeparaContainer implements ServiceContainer {
       const reason = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to resolve ${tokenDescription(identifierToken(token))}: ${reason}`, { cause: error });
     }
+  }
+
+  async resolveAsync<T>(token: ServiceIdentifier<T>): Promise<T> {
+    return this.getAsync(token);
+  }
+
+  async bindAsync<T>(token: ServiceIdentifier<T>): Promise<T> {
+    return this.getAsync(token);
   }
 
   async getQualifiedAsync<T>(token: ServiceIdentifier<T>, qualifier: string): Promise<T> {
@@ -299,8 +324,8 @@ export class SeparaContainer implements ServiceContainer {
   resolve<T extends object>(target: ConcreteConstructor<T>, ...args: any[]): T {
     this._assertActive();
     const instance = new (target as new (...args: any[]) => T)(...args);
-    injectProperties(instance, this);
     const enhanced = this._enhanceOverrideValue(instance);
+    injectProperties(enhanced, this);
     this._created.add(enhanced);
     return enhanced;
   }
@@ -308,8 +333,8 @@ export class SeparaContainer implements ServiceContainer {
   private _registerOverride<T extends object>(override: ServiceOverride<T>): void {
     const id = identifier(override.token);
     if (override.value) {
-      injectProperties(override.value, this);
       const value = this._enhanceOverrideValue(override.value);
+      injectProperties(value, this);
       this._created.add(value);
       this._container.bind<T>(id).toConstantValue(value);
       return;
@@ -319,8 +344,8 @@ export class SeparaContainer implements ServiceContainer {
       .bind<T>(id)
       .toDynamicValue(() => {
         const instance = new override.implementation!();
-        injectProperties(instance, this);
         const enhanced = this._enhanceOverrideValue(instance);
+        injectProperties(enhanced, this);
         this._created.add(enhanced);
         return enhanced;
       })
@@ -392,15 +417,16 @@ export class SeparaContainer implements ServiceContainer {
 
   private _createInstance<T extends object>(definition: ServiceDefinition<T>, container: ServiceContainer = this): T | Promise<T> {
     const enhance = (instance: T): T => {
-      injectProperties(instance, container);
       const hasKeys = (definition.stateKeys?.length ?? 0) > 0 || (definition.methodKeys?.length ?? 0) > 0;
-      if (hasKeys && !isReactiveService(instance)) {
-        return enhanceService(instance, {
+      let current = instance;
+      if (hasKeys && !isReactiveService(current)) {
+        current = enhanceService(current, {
           stateKeys: (definition.stateKeys ?? []) as (keyof T)[],
           methodKeys: (definition.methodKeys ?? []) as (keyof T)[],
         });
       }
-      return instance;
+      injectProperties(current, container);
+      return current;
     };
 
     const finish = async (raw: T): Promise<T> => {

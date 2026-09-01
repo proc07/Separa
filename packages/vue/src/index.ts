@@ -1,5 +1,5 @@
 import { effectScope, getCurrentScope, inject, onScopeDispose, provide, readonly, shallowRef, triggerRef, type App, type InjectionKey, type Ref } from "vue";
-import { getReactiveController } from "@separa/core";
+import { getReactiveController, getServiceMetadata } from "@separa/core";
 import type { ServiceContainer, ServiceIdentifier } from "@separa/core";
 
 export const containerKey: InjectionKey<ServiceContainer> = Symbol("@separa/vue/container");
@@ -43,9 +43,22 @@ export function useService<T extends object>(token: ServiceIdentifier<T>): Servi
   const reactiveKeys = new Set(controller.stateKeys as (keyof T)[]);
   const values = new Map<keyof T, Ref<T[keyof T]>>();
 
+  // 读取装饰器元数据中标记的 nonReactiveKeys（@Autowired / @Inject / @NonReactive 字段）
+  // 这些字段的引用不会变化，不需要包装为 Ref，直接暴露即可
+  const meta = getServiceMetadata(service.constructor as any);
+  const nonReactiveKeys = meta?.nonReactiveKeys ?? new Set<PropertyKey>();
+
   // 实例字段包含绑定后的方法；原型遍历额外发现继承方法和派生 Getter。
   for (const key of Reflect.ownKeys(service) as (keyof T)[]) {
-    if (typeof service[key] === "function") facade[key] = service[key];
+    if (key === "constructor") continue;
+    if (typeof service[key] === "function") {
+      facade[key] = service[key];
+    } else if (nonReactiveKeys.has(key as PropertyKey)) {
+      // @Autowired / @Inject / @NonReactive 标记的属性，直接暴露引用，不包装为 Ref
+      facade[key] = service[key];
+    } else {
+      reactiveKeys.add(key);
+    }
   }
   let prototype = Object.getPrototypeOf(service) as object | null;
   while (prototype && prototype !== Object.prototype) {

@@ -28,7 +28,7 @@ const {
 const {
   formattedFinalTotal,
   formattedTaxAmount,
-  itemDiscountAmountCNY,
+  formattedItemDiscount,
   currencyService,
 } = calculator;
 </script>
@@ -59,7 +59,7 @@ const {
             type="number"
             class="price-input"
             :value="price"
-            @change="(e) => setPrice(Number((e.target as HTMLInputElement).value))"
+            @input="(e) => setPrice(Number((e.target as HTMLInputElement).value))"
           />
         </div>
       </div>
@@ -98,7 +98,7 @@ const {
       <div class="tax-hint">
         含税: {{ formattedTaxAmount }}
         <template v-if="discountRate > 0">
-          (省 {{ currencyService.format(itemDiscountAmountCNY) }})
+          (省 {{ formattedItemDiscount }})
         </template>
       </div>
     </div>

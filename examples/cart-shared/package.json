@@ -7,6 +7,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "test": "vitest run"
+  },
   "dependencies": {
     "@separa/core": "workspace:*",
     "@separa/ioc-inversify": "workspace:*"

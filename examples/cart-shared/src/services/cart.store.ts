@@ -43,11 +43,6 @@ export class CartStoreService {
     return this._childContainers.get(id);
   }
 
-  /** 兼容旧版命名调用 */
-  getContainer(id: string): SeparaContainer | undefined {
-    return this.getChildContainer(id);
-  }
-
   /**
    * 生命周期钩子：容器解析该服务时自动初始化默认商品
    */

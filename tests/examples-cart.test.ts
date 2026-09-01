@@ -68,10 +68,20 @@ describe("Scoped Shopping Cart (Child Containers)", () => {
     expect(scope2.calculator.taxAmountCNY).toBe(2080);
     expect(scope2.calculator.finalTotalCNY).toBe(18080);
 
-    // 4. Verify parent service (CurrencyService) change affects both child calculators
+    // 4. Verify parent service (CurrencyService) change triggers reactive notification on child calculator
+    let scope1Notified = false;
+    const { getReactiveController } = await import("@separa/core");
+    const ctrl1 = getReactiveController(scope1.calculator);
+    expect(ctrl1).toBeDefined();
+    const unbind = ctrl1!.subscribe(() => {
+      scope1Notified = true;
+    });
+
     currency.setCurrency("USD"); // Rate = 0.14
+    expect(scope1Notified).toBe(true);
     expect(scope1.calculator.formattedFinalTotal).toBe("$3,164.00");
     expect(scope2.calculator.formattedFinalTotal).toBe("$2,531.20");
+    unbind();
 
     // 5. Verify parent service (TaxService) change affects both child calculators
     tax.setRegion("US"); // Rate = 0.0725
