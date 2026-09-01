@@ -31,7 +31,10 @@ describe("BallcraftService (examples/ballcraft-shared)", () => {
     });
 
     it("resets state when calling newGame()", () => {
-      service.selectColumn(0); // Pick a ball
+      // column 0 may be empty after generatePuzzle — find a non-empty column
+      const nonEmptyIdx = service.columns.findIndex((c) => c.length > 0);
+      expect(nonEmptyIdx).toBeGreaterThanOrEqual(0);
+      service.selectColumn(nonEmptyIdx); // Pick a ball
       expect(service.pickedBall).not.toBeNull();
 
       service.newGame();

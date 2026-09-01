@@ -10,9 +10,11 @@
     "typecheck:examples": "tsc --noEmit -p examples/todo-shared/tsconfig.json && tsc --noEmit -p examples/react-todo/tsconfig.json && tsc --noEmit -p examples/vue-todo/tsconfig.json && tsc --noEmit -p examples/ballcraft-shared/tsconfig.json && tsc --noEmit -p examples/react-ballcraft/tsconfig.json && tsc --noEmit -p examples/vue-ballcraft/tsconfig.json && tsc --noEmit -p examples/cart-shared/tsconfig.json && tsc --noEmit -p examples/react-cart/tsconfig.json && tsc --noEmit -p examples/vue-cart/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "pnpm build && pnpm build:examples && pnpm typecheck && pnpm typecheck:examples && pnpm test"
+    "test:e2e": "playwright test",
+    "check": "pnpm build && pnpm build:examples && pnpm typecheck && pnpm typecheck:examples && pnpm test && pnpm test:e2e"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@swc/core": "^1.16.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.0",
