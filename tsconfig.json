@@ -17,7 +17,8 @@
       "@separa/vite-plugin": ["./packages/vite-plugin/src/index.ts"],
       "@separa/example-todo-shared": ["./examples/todo-shared/src/index.ts"],
       "@separa/example-ballcraft-shared": ["./examples/ballcraft-shared/src/index.ts"],
-      "@separa/example-cart-shared": ["./examples/cart-shared/src/index.ts"]
+      "@separa/example-cart-shared": ["./examples/cart-shared/src/index.ts"],
+      "@separa/example-snake-shared": ["./examples/snake-shared/src/index.ts"]
     }
   },
   "include": ["packages/**/*.ts", "packages/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx", "vitest.config.ts"]

@@ -48,25 +48,34 @@ export function useService<T extends object>(token: ServiceIdentifier<T>): Servi
   const meta = getServiceMetadata(service.constructor as any);
   const nonReactiveKeys = meta?.nonReactiveKeys ?? new Set<PropertyKey>();
 
-  // 实例字段包含绑定后的方法；原型遍历额外发现继承方法和派生 Getter。
+  // 实例字段遍历：
+  // 1. 函数方法自动执行 .bind(service)，确保在 Vue <script setup> 中解构（如 const { fn } = useService(...)）
+  //    或在模板中直接传递 @click="fn" 时，方法内部的 this 始终牢固指向当前服务实例，避免上下文丢失变 undefined。
+  // 2. @Autowired / @Inject / @NonReactive 标记的属性为静态引用，直接暴露原值即可。
+  // 3. 其他业务属性统一归入 reactiveKeys，包装为 Vue 只读 Ref。
   for (const key of Reflect.ownKeys(service) as (keyof T)[]) {
     if (key === "constructor") continue;
     if (typeof service[key] === "function") {
-      facade[key] = service[key];
+      facade[key] = (service[key] as Function).bind(service);
     } else if (nonReactiveKeys.has(key as PropertyKey)) {
-      // @Autowired / @Inject / @NonReactive 标记的属性，直接暴露引用，不包装为 Ref
       facade[key] = service[key];
     } else {
       reactiveKeys.add(key);
     }
   }
+
+  // 原型链遍历：
+  // 发现类中继承的方法或原型方法（同样进行 .bind(service) 防解构丢失 this），以及派生的 Getter 属性（归入 reactiveKeys）。
   let prototype = Object.getPrototypeOf(service) as object | null;
   while (prototype && prototype !== Object.prototype) {
     for (const key of Reflect.ownKeys(prototype) as (keyof T)[]) {
       if (key === "constructor") continue;
       const descriptor = Object.getOwnPropertyDescriptor(prototype, key);
-      if (typeof descriptor?.get === "function") reactiveKeys.add(key);
-      else if (typeof service[key] === "function") facade[key] = service[key];
+      if (typeof descriptor?.get === "function") {
+        reactiveKeys.add(key);
+      } else if (typeof service[key] === "function") {
+        facade[key] = (service[key] as Function).bind(service);
+      }
     }
     prototype = Object.getPrototypeOf(prototype) as object | null;
   }

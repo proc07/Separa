@@ -64,6 +64,49 @@ describe("@separa/vue", () => {
     expect(observedDoubled).toBe(2);
   });
 
+  it("binds methods so destructured calls preserve 'this' context safely", async () => {
+    @Service({ scope: "singleton" })
+    class MathService {
+      val = 10;
+      add(n: number) {
+        this.val += n;
+      }
+    }
+
+    const container = createContainer({
+      definitions: [defineDecoratedService(MathService, ["val"])],
+    });
+    const plugin = createSeparaPlugin(container);
+
+    let destructuredAdd: ((n: number) => void) | null = null;
+    let observedVal = -1;
+
+    const Comp = defineComponent({
+      setup() {
+        const { val, add } = useService(MathService);
+        destructuredAdd = add;
+        return () => {
+          observedVal = val.value;
+          return h("div", val.value);
+        };
+      },
+    });
+
+    const app = createApp(Comp);
+    app.use(plugin);
+    const root = document.createElement("div");
+    app.mount(root);
+
+    expect(observedVal).toBe(10);
+    expect(destructuredAdd).toBeDefined();
+
+    // 独立解构调用（无对象接收者），内部 this 依然有效
+    destructuredAdd!(5);
+    await nextTick();
+
+    expect(observedVal).toBe(15);
+  });
+
   it("supports resolving via ServiceHandle in Vue", () => {
     interface ILogger {
       level: string;

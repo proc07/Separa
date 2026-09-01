@@ -62,6 +62,22 @@ export default defineConfig({
         baseURL: "http://localhost:5179",
       },
     },
+    {
+      name: "react-snake",
+      testDir: "./examples/react-snake/e2e",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:5180",
+      },
+    },
+    {
+      name: "vue-snake",
+      testDir: "./examples/vue-snake/e2e",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:5181",
+      },
+    },
   ],
   webServer: [
     {
@@ -97,6 +113,18 @@ export default defineConfig({
     {
       command: "cd examples/vue-cart && npx vite --port 5179",
       url: "http://localhost:5179",
+      reuseExistingServer: true,
+      timeout: 30000,
+    },
+    {
+      command: "cd examples/react-snake && npx vite --port 5180",
+      url: "http://localhost:5180",
+      reuseExistingServer: true,
+      timeout: 30000,
+    },
+    {
+      command: "cd examples/vue-snake && npx vite --port 5181",
+      url: "http://localhost:5181",
       reuseExistingServer: true,
       timeout: 30000,
     },

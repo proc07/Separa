@@ -7,7 +7,7 @@
     "build": "pnpm --filter \"./packages/*\" build",
     "build:examples": "pnpm --filter \"./examples/*\" build",
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm --filter \"./packages/*\" typecheck",
-    "typecheck:examples": "tsc --noEmit -p examples/todo-shared/tsconfig.json && tsc --noEmit -p examples/react-todo/tsconfig.json && tsc --noEmit -p examples/vue-todo/tsconfig.json && tsc --noEmit -p examples/ballcraft-shared/tsconfig.json && tsc --noEmit -p examples/react-ballcraft/tsconfig.json && tsc --noEmit -p examples/vue-ballcraft/tsconfig.json && tsc --noEmit -p examples/cart-shared/tsconfig.json && tsc --noEmit -p examples/react-cart/tsconfig.json && tsc --noEmit -p examples/vue-cart/tsconfig.json",
+    "typecheck:examples": "tsc --noEmit -p examples/todo-shared/tsconfig.json && tsc --noEmit -p examples/react-todo/tsconfig.json && tsc --noEmit -p examples/vue-todo/tsconfig.json && tsc --noEmit -p examples/ballcraft-shared/tsconfig.json && tsc --noEmit -p examples/react-ballcraft/tsconfig.json && tsc --noEmit -p examples/vue-ballcraft/tsconfig.json && tsc --noEmit -p examples/cart-shared/tsconfig.json && tsc --noEmit -p examples/react-cart/tsconfig.json && tsc --noEmit -p examples/vue-cart/tsconfig.json && tsc --noEmit -p examples/snake-shared/tsconfig.json && tsc --noEmit -p examples/react-snake/tsconfig.json && tsc --noEmit -p examples/vue-snake/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

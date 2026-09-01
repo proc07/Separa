@@ -1,0 +1,28 @@
+{
+  "name": "@separa/example-react-snake",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@separa/core": "workspace:*",
+    "@separa/example-snake-shared": "workspace:*",
+    "@separa/ioc-inversify": "workspace:*",
+    "@separa/react": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@separa/vite-plugin": "workspace:*",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "4.7.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}

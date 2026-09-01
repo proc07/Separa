@@ -184,6 +184,46 @@ importers:
         specifier: ^6.3.5
         version: 6.4.3(@types/node@22.20.1)(terser@5.51.2)
 
+  examples/react-snake:
+    dependencies:
+      '@separa/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@separa/example-snake-shared':
+        specifier: workspace:*
+        version: link:../snake-shared
+      '@separa/ioc-inversify':
+        specifier: workspace:*
+        version: link:../../packages/ioc-inversify
+      '@separa/react':
+        specifier: workspace:*
+        version: link:../../packages/react
+      react:
+        specifier: ^19.1.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@separa/vite-plugin':
+        specifier: workspace:*
+        version: link:../../packages/vite-plugin
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.2.5
+        version: 19.2.5(@types/react@19.2.18)
+      '@vitejs/plugin-react':
+        specifier: 4.7.0
+        version: 4.7.0(vite@6.4.3(@types/node@22.20.1)(terser@5.51.2))
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vite:
+        specifier: ^6.3.5
+        version: 6.4.3(@types/node@22.20.1)(terser@5.51.2)
+
   examples/react-todo:
     dependencies:
       '@separa/core':
@@ -223,6 +263,19 @@ importers:
       vite:
         specifier: ^6.3.5
         version: 6.4.3(@types/node@22.20.1)(terser@5.51.2)
+
+  examples/snake-shared:
+    dependencies:
+      '@separa/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      '@separa/ioc-inversify':
+        specifier: workspace:*
+        version: link:../../packages/ioc-inversify
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
 
   examples/todo-shared:
     dependencies:
@@ -279,6 +332,40 @@ importers:
       '@separa/example-cart-shared':
         specifier: workspace:*
         version: link:../cart-shared
+      '@separa/ioc-inversify':
+        specifier: workspace:*
+        version: link:../../packages/ioc-inversify
+      '@separa/vue':
+        specifier: workspace:*
+        version: link:../../packages/vue
+      vue:
+        specifier: ^3.5.13
+        version: 3.5.42(typescript@5.8.3)
+    devDependencies:
+      '@separa/vite-plugin':
+        specifier: workspace:*
+        version: link:../../packages/vite-plugin
+      '@vitejs/plugin-vue':
+        specifier: ^5.2.4
+        version: 5.2.4(vite@6.4.3(@types/node@22.20.1)(terser@5.51.2))(vue@3.5.42(typescript@5.8.3))
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vite:
+        specifier: ^6.3.5
+        version: 6.4.3(@types/node@22.20.1)(terser@5.51.2)
+      vue-tsc:
+        specifier: ^2.2.8
+        version: 2.2.12(typescript@5.8.3)
+
+  examples/vue-snake:
+    dependencies:
+      '@separa/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@separa/example-snake-shared':
+        specifier: workspace:*
+        version: link:../snake-shared
       '@separa/ioc-inversify':
         specifier: workspace:*
         version: link:../../packages/ioc-inversify
@@ -397,16 +484,31 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
+      unplugin:
+        specifier: ^3.3.0
+        version: 3.3.0(@rspack/core@2.2.1)(esbuild@0.28.2)(rollup@4.63.1)(vite@6.4.3(@types/node@22.20.1)(terser@5.51.2))(webpack@5.110.2(@swc/core@1.16.1)(esbuild@0.28.2)(postcss@8.5.26))
     devDependencies:
+      '@rspack/core':
+        specifier: ^2.2.1
+        version: 2.2.1
       '@types/node':
         specifier: ^22.15.0
         version: 22.20.1
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+      rollup:
+        specifier: ^4.63.1
+        version: 4.63.1
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(@swc/core@1.16.1)(postcss@8.5.26)(typescript@5.8.3)
       vite:
         specifier: ^6.3.5
         version: 6.4.3(@types/node@22.20.1)(terser@5.51.2)
+      webpack:
+        specifier: ^5.110.2
+        version: 5.110.2(@swc/core@1.16.1)(esbuild@0.28.2)(postcss@8.5.26)
 
   packages/vue:
     devDependencies:

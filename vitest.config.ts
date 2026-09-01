@@ -19,6 +19,7 @@ export default defineConfig({
       "@separa/example-todo-shared": path.resolve(__dirname, "examples/todo-shared/src/index.ts"),
       "@separa/example-ballcraft-shared": path.resolve(__dirname, "examples/ballcraft-shared/src/index.ts"),
       "@separa/example-cart-shared": path.resolve(__dirname, "examples/cart-shared/src/index.ts"),
+      "@separa/example-snake-shared": path.resolve(__dirname, "examples/snake-shared/src/index.ts"),
     },
   },
   test: {
