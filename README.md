@@ -30,9 +30,12 @@ Separa 采用 Monorepo 架构，职责分明：
 | :--- | :--- |
 | **`@separa/core`** | 核心装饰器（`@Service`, `@Autowired`, `@Inject`, `@Qualifier`）、Token 体系、响应式增强器 |
 | **`@separa/ioc-inversify`** | 现代 IoC 容器引擎、父子作用域（`createScope`）、动态模块与生命周期管理 |
-| **`@separa/vite-plugin`** | Vite 编译期 AOT 依赖分析插件、虚拟注册表生成、静态架构校验 |
+| **`@separa/plugin`** | Vite 编译期 AOT 依赖分析插件、虚拟注册表生成、静态架构校验（同时支持 webpack / rspack / rollup / esbuild） |
 | **`@separa/react`** | React 适配层（`<SeparaProvider />`, `useService()`, `useContainer()`） |
 | **`@separa/vue`** | Vue 3 适配层（`SeparaPlugin`, `useService()`, `useContainer()`） |
+| **`@separa/taro`** | Taro 小程序适配层（React 模式：`import from "@separa/taro/react"`；Vue 模式：`import from "@separa/taro/vue"`；`useTaroPageScope()` 自动管理页面子容器生命周期） |
+| **`@separa/uniapp`** | uni-app 小程序适配层（Vue 3；`useSeparaPageScope()` / `useSeparaComponentScope()` 自动 dispose） |
+| **`@separa/miniprogram`** | 微信原生小程序适配层（`defineSeparaPage()` / `defineSeparaComponent()`；Service 状态自动桥接至 `setData()`） |
 
 ---
 
@@ -44,7 +47,7 @@ Separa 采用 Monorepo 架构，职责分明：
 // vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react"; // 或 vue()
-import { separa } from "@separa/vite-plugin";
+import { separa } from "@separa/plugin";
 
 export default defineConfig({
   plugins: [
@@ -231,3 +234,144 @@ pnpm check
 
 [MIT](LICENSE)
 
+
+---
+
+## 📱 小程序接入 / Mini Program Support
+
+Separa 完整支持三大小程序平台，**业务 Service 层代码 100% 共享**，仅 UI 适配层不同。
+
+### Taro（React 模式）
+
+```bash
+pnpm add @separa/taro @separa/ioc-inversify @separa/plugin
+```
+
+**config/index.ts**（Taro webpack 构建配置）：
+```ts
+import SeparaPlugin from "@separa/plugin/webpack";
+export default {
+  plugins: {
+    webpackChain(chain: any) {
+      chain.plugin("separa").use(SeparaPlugin, [{ include: ["src/**/*.ts"] }]);
+    },
+  },
+};
+```
+
+**页面中使用**：
+```tsx
+import { useTaroPageScope, useService } from "@separa/taro/react";
+import { SeparaProvider } from "@separa/taro/react";
+import { rootContainer } from "@/container";
+import { CartService } from "@/services/cart.service";
+
+export default function CartPage() {
+  const pageContainer = useTaroPageScope(rootContainer);
+  return (
+    <SeparaProvider container={pageContainer}>
+      <CartView />
+    </SeparaProvider>
+  );
+}
+
+function CartView() {
+  const cart = useService(CartService); // 响应式，状态变更自动触发重渲染
+  return <View>合计：{cart.total}</View>;
+}
+```
+
+### Taro（Vue 模式）
+
+```tsx
+<script setup lang="ts">
+import { useTaroPageScope, useService, provideContainer } from "@separa/taro/vue";
+import { rootContainer } from "@/container";
+import { CartService } from "@/services/cart.service";
+
+const pageContainer = useTaroPageScope(rootContainer);
+provideContainer(pageContainer);
+const cart = useService(CartService);
+</script>
+
+<template>
+  <view>合计：{{ cart.total }}</view>
+</template>
+```
+
+### uni-app（Vue 3）
+
+```bash
+pnpm add @separa/uniapp @separa/ioc-inversify @separa/plugin
+```
+
+**vite.config.ts**：
+```ts
+import { separa } from "@separa/plugin";
+export default defineConfig({ plugins: [uni(), separa()] });
+```
+
+**页面中使用**：
+```vue
+<script setup lang="ts">
+import { useSeparaPageScope, useService, provideContainer } from "@separa/uniapp";
+import { rootContainer } from "@/container";
+import { CartService } from "@/services/cart.service";
+
+const pageContainer = useSeparaPageScope(rootContainer); // 页面销毁时自动 dispose
+provideContainer(pageContainer);
+const cart = useService(CartService);
+</script>
+```
+
+### 微信原生小程序
+
+```bash
+# 安装后在微信开发者工具中点击「构建 npm」
+npm add @separa/miniprogram @separa/ioc-inversify @separa/core
+```
+
+**app.ts**（初始化根容器）：
+```ts
+import "reflect-metadata";
+import { SeparaContainer } from "@separa/ioc-inversify";
+import { defineDecoratedService } from "@separa/core";
+import { CartService } from "./services/cart.service";
+
+// 无 AOT 构建插件时，手动声明 Service（需在 tsconfig 开启 emitDecoratorMetadata）
+export const rootContainer = new SeparaContainer({
+  definitions: [
+    defineDecoratedService(CartService, ["total", "items"]),
+  ],
+});
+
+App({ onLaunch() {} });
+```
+
+**pages/cart/index.ts**：
+```ts
+import { defineSeparaPage } from "@separa/miniprogram";
+import { rootContainer } from "../../app";
+import { CartService } from "../../services/cart.service";
+
+defineSeparaPage(rootContainer, {
+  inject: { cart: CartService }, // WXML 中可直接绑定 {{cart.total}}
+  onLoad() {
+    // this.$services.cart → CartService 实例
+    // this.data.cart      → 自动与 Service 状态同步
+  },
+});
+```
+
+**pages/cart/index.wxml**：
+```xml
+<view>合计：{{cart.total}}</view>
+<view wx:for="{{cart.items}}" wx:key="id">{{item.name}}</view>
+<button bindtap="checkout">结算</button>
+```
+
+> **tsconfig.json 必须配置**：
+> ```json
+> { "compilerOptions": { "experimentalDecorators": true, "emitDecoratorMetadata": true } }
+> ```
+> 微信小程序基础库要求 **≥ 2.12.0**（Proxy 支持）。

@@ -1,6 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import separa from "@separa/vite-plugin";
+import separa from "@separa/plugin";
 
 describe("Vite Plugin SFC scanning", () => {
   it("scans vue-todo project and generates TodoService registry", () => {

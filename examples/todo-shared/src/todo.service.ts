@@ -4,7 +4,7 @@ import type { Todo, TodoFilter } from "./types";
 /**
  * TodoService — 框架无关的业务逻辑。
  *
- * - `todos` 是响应式状态（通过 @separa/vite-plugin 自动识别），
+ * - `todos` 是响应式状态（通过 @separa/plugin 自动识别），
  *   React 端通过 useSyncExternalStore 订阅，Vue 端转换为 Ref Facade。
  * - `filter` 同样是响应式状态，用于切换视图过滤条件。
  * - `nextId` 使用 @NonReactive() 标注，只作为内部计数器，不触发 UI 更新。

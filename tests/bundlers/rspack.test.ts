@@ -4,8 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { rspack } from "@rspack/core";
-import separaRspack from "@separa/vite-plugin/rspack";
-import { rspack as separaRspackNamed } from "@separa/vite-plugin";
+import separaRspack from "@separa/plugin/rspack";
+import { rspack as separaRspackNamed } from "@separa/plugin";
 
 describe("Rspack Bundler Plugin Integration", () => {
   let tmpDir: string;

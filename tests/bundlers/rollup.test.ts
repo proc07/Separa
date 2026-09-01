@@ -4,8 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { rollup } from "rollup";
-import separaRollup from "@separa/vite-plugin/rollup";
-import { rollup as separaRollupNamed } from "@separa/vite-plugin";
+import separaRollup from "@separa/plugin/rollup";
+import { rollup as separaRollupNamed } from "@separa/plugin";
 
 describe("Rollup Bundler Plugin Integration", () => {
   let tmpDir: string;

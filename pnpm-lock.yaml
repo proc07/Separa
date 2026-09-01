@@ -125,9 +125,9 @@ importers:
         specifier: ^19.2.8
         version: 19.2.8(react@19.2.8)
     devDependencies:
-      '@separa/vite-plugin':
+      '@separa/plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/plugin
       '@types/react':
         specifier: ^19.1.0
         version: 19.2.18
@@ -165,9 +165,9 @@ importers:
         specifier: ^19.2.8
         version: 19.2.8(react@19.2.8)
     devDependencies:
-      '@separa/vite-plugin':
+      '@separa/plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/plugin
       '@types/react':
         specifier: ^19.1.0
         version: 19.2.18
@@ -205,9 +205,9 @@ importers:
         specifier: ^19.2.8
         version: 19.2.8(react@19.2.8)
     devDependencies:
-      '@separa/vite-plugin':
+      '@separa/plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/plugin
       '@types/react':
         specifier: ^19.1.0
         version: 19.2.18
@@ -245,9 +245,9 @@ importers:
         specifier: ^19.2.8
         version: 19.2.8(react@19.2.8)
     devDependencies:
-      '@separa/vite-plugin':
+      '@separa/plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/plugin
       '@types/react':
         specifier: ^19.1.0
         version: 19.2.18
@@ -308,9 +308,9 @@ importers:
         specifier: ^3.5.13
         version: 3.5.42(typescript@5.8.3)
     devDependencies:
-      '@separa/vite-plugin':
+      '@separa/plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/plugin
       '@vitejs/plugin-vue':
         specifier: ^5.2.4
         version: 5.2.4(vite@6.4.3(@types/node@22.20.1)(terser@5.51.2))(vue@3.5.42(typescript@5.8.3))
@@ -342,9 +342,9 @@ importers:
         specifier: ^3.5.13
         version: 3.5.42(typescript@5.8.3)
     devDependencies:
-      '@separa/vite-plugin':
+      '@separa/plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/plugin
       '@vitejs/plugin-vue':
         specifier: ^5.2.4
         version: 5.2.4(vite@6.4.3(@types/node@22.20.1)(terser@5.51.2))(vue@3.5.42(typescript@5.8.3))
@@ -376,9 +376,9 @@ importers:
         specifier: ^3.5.13
         version: 3.5.42(typescript@5.8.3)
     devDependencies:
-      '@separa/vite-plugin':
+      '@separa/plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/plugin
       '@vitejs/plugin-vue':
         specifier: ^5.2.4
         version: 5.2.4(vite@6.4.3(@types/node@22.20.1)(terser@5.51.2))(vue@3.5.42(typescript@5.8.3))
@@ -410,9 +410,9 @@ importers:
         specifier: ^3.5.13
         version: 3.5.42(typescript@5.8.3)
     devDependencies:
-      '@separa/vite-plugin':
+      '@separa/plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/plugin
       '@vitejs/plugin-vue':
         specifier: ^5.2.4
         version: 5.2.4(vite@6.4.3(@types/node@22.20.1)(terser@5.51.2))(vue@3.5.42(typescript@5.8.3))
@@ -461,17 +461,14 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  packages/react:
+  packages/miniprogram:
     devDependencies:
       '@separa/core':
         specifier: workspace:*
         version: link:../core
-      '@types/react':
-        specifier: ^19.1.0
-        version: 19.2.18
-      react:
-        specifier: ^19.1.0
-        version: 19.2.8
+      '@types/wechat-miniprogram':
+        specifier: ^3.4.9
+        version: 3.4.10
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(@swc/core@1.16.1)(postcss@8.5.26)(typescript@5.8.3)
@@ -479,7 +476,7 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  packages/vite-plugin:
+  packages/plugin:
     dependencies:
       typescript:
         specifier: ^5.8.3
@@ -509,6 +506,69 @@ importers:
       webpack:
         specifier: ^5.110.2
         version: 5.110.2(@swc/core@1.16.1)(esbuild@0.28.2)(postcss@8.5.26)
+
+  packages/react:
+    devDependencies:
+      '@separa/core':
+        specifier: workspace:*
+        version: link:../core
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.2.18
+      react:
+        specifier: ^19.1.0
+        version: 19.2.8
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(@swc/core@1.16.1)(postcss@8.5.26)(typescript@5.8.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
+  packages/taro:
+    devDependencies:
+      '@separa/core':
+        specifier: workspace:*
+        version: link:../core
+      '@separa/react':
+        specifier: workspace:*
+        version: link:../react
+      '@separa/vue':
+        specifier: workspace:*
+        version: link:../vue
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.2.18
+      react:
+        specifier: ^19.1.0
+        version: 19.2.8
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(@swc/core@1.16.1)(postcss@8.5.26)(typescript@5.8.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vue:
+        specifier: ^3.5.13
+        version: 3.5.42(typescript@5.8.3)
+
+  packages/uniapp:
+    devDependencies:
+      '@separa/core':
+        specifier: workspace:*
+        version: link:../core
+      '@separa/vue':
+        specifier: workspace:*
+        version: link:../vue
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(@swc/core@1.16.1)(postcss@8.5.26)(typescript@5.8.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vue:
+        specifier: ^3.5.13
+        version: 3.5.42(typescript@5.8.3)
 
   packages/vue:
     devDependencies:
@@ -1584,6 +1644,9 @@ packages:
 
   '@types/react@19.2.18':
     resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
+
+  '@types/wechat-miniprogram@3.4.10':
+    resolution: {integrity: sha512-NG8mvXxQABE+gUHO2DAnK0W6f2hLT9AvWqzCxjqGUvGuRNkegMomzjm1z3LNPrgm9kfI8OhMO7kbilhwpREriw==}
 
   '@vitejs/plugin-react@4.7.0':
     resolution: {integrity: sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA==}
@@ -3874,6 +3937,8 @@ snapshots:
   '@types/react@19.2.18':
     dependencies:
       csstype: 3.2.3
+
+  '@types/wechat-miniprogram@3.4.10': {}
 
   '@vitejs/plugin-react@4.7.0(vite@6.4.3(@types/node@22.20.1)(terser@5.51.2))':
     dependencies:

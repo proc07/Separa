@@ -1,0 +1,28 @@
+{
+  "name": "@separa/miniprogram",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts src/page.ts src/component.ts src/sync.ts --format esm --dts --clean --external @separa/core",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@separa/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@separa/core": "workspace:*",
+    "@types/wechat-miniprogram": "^3.4.9",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  }
+}

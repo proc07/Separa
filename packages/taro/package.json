@@ -1,0 +1,45 @@
+{
+  "name": "@separa/taro",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js",
+      "default": "./dist/react.js"
+    },
+    "./vue": {
+      "types": "./dist/vue.d.ts",
+      "import": "./dist/vue.js",
+      "default": "./dist/vue.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/react.ts src/vue.ts --format esm --dts --clean --external react --external vue --external @separa/core --external @separa/react --external @separa/vue",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@separa/core": "workspace:*",
+    "@separa/react": "workspace:*",
+    "@separa/vue": "workspace:*",
+    "react": ">=18",
+    "vue": ">=3"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true },
+    "@separa/react": { "optional": true },
+    "vue": { "optional": true },
+    "@separa/vue": { "optional": true }
+  },
+  "devDependencies": {
+    "@separa/core": "workspace:*",
+    "@separa/react": "workspace:*",
+    "@separa/vue": "workspace:*",
+    "@types/react": "^19.1.0",
+    "react": "^19.1.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vue": "^3.5.13"
+  }
+}

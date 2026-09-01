@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import separa, { VIRTUAL_ID } from "@separa/vite-plugin";
+import separa, { VIRTUAL_ID } from "@separa/plugin";
 
-describe("@separa/vite-plugin - Program scanning and validation", () => {
+describe("@separa/plugin - Program scanning and validation", () => {
   let tmpDir: string;
 
   beforeEach(() => {
@@ -254,7 +254,7 @@ describe("@separa/vite-plugin - Program scanning and validation", () => {
   });
 });
 
-describe("@separa/vite-plugin - Advanced diagnostics and entry reachability", () => {
+describe("@separa/plugin - Advanced diagnostics and entry reachability", () => {
   let tmpDir: string;
 
   beforeEach(() => {
@@ -433,7 +433,7 @@ describe("@separa/vite-plugin - Advanced diagnostics and entry reachability", ()
   });
 });
 
-describe("@separa/vite-plugin - Syntax errors and edge cases", () => {
+describe("@separa/plugin - Syntax errors and edge cases", () => {
   let tmpDir: string;
 
   beforeEach(() => {

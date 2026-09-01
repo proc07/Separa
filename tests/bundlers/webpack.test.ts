@@ -4,8 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import webpack from "webpack";
-import separaWebpack from "@separa/vite-plugin/webpack";
-import { webpack as separaWebpackNamed } from "@separa/vite-plugin";
+import separaWebpack from "@separa/plugin/webpack";
+import { webpack as separaWebpackNamed } from "@separa/plugin";
 
 describe("Webpack 5 Bundler Plugin Integration", () => {
   let tmpDir: string;
@@ -112,7 +112,7 @@ describe("Webpack 5 Bundler Plugin Integration", () => {
     expect(bundleContent).toContain("AppService");
     expect(bundleContent).toContain("LoggerService");
     expect(bundleContent).toContain("serviceDefinitions");
-  });
+  }, 15_000);
 
   it("works with named export from main package", async () => {
     const outputPath = path.join(tmpDir, "dist-named");

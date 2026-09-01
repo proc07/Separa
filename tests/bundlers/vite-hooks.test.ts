@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import separa, { VIRTUAL_ID } from "@separa/vite-plugin";
+import separa, { VIRTUAL_ID } from "@separa/plugin";
 
-describe("@separa/vite-plugin - Plugin hooks & HMR", () => {
+describe("@separa/plugin - Plugin hooks & HMR", () => {
   let tmpDir: string;
 
   beforeEach(() => {

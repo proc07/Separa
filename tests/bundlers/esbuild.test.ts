@@ -4,8 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import esbuild from "esbuild";
-import separaEsbuild from "@separa/vite-plugin/esbuild";
-import { esbuild as separaEsbuildNamed } from "@separa/vite-plugin";
+import separaEsbuild from "@separa/plugin/esbuild";
+import { esbuild as separaEsbuildNamed } from "@separa/plugin";
 
 describe("esbuild Bundler Plugin Integration", () => {
   let tmpDir: string;

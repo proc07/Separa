@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import separa from "@separa/vite-plugin";
+import separa from "@separa/plugin";
 
 export default defineConfig({
   plugins: [
