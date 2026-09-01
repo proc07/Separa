@@ -299,7 +299,8 @@ describe("BallcraftService (examples/ballcraft-shared)", () => {
         notified = true;
       });
 
-      game.selectColumn(0);
+      const colWithBall = game.columns.findIndex((c) => c.length > 0);
+      game.selectColumn(colWithBall >= 0 ? colWithBall : 0);
       expect(notified).toBe(true);
 
       unsubscribe();

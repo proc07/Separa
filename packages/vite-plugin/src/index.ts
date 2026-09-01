@@ -7,6 +7,7 @@ const VIRTUAL_ID = "virtual:separa/registry";
 const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
 
 export interface SeparaPluginOptions {
+  readonly root?: string;
   readonly tsconfig?: string;
   readonly debugOutput?: string | false;
   readonly declarationOutput?: string | false;
@@ -484,7 +485,7 @@ function generateRegistry(program: ts.Program, root: string, options: SeparaPlug
 
   const imports = services.map((service, index) => {
     const normalized = service.file.split(path.sep).join("/");
-    return `import { ${service.exportName} as Service${index} } from ${JSON.stringify(`/@fs/${normalized}`)};`;
+    return `import { ${service.exportName} as Service${index} } from ${JSON.stringify(normalized)};`;
   });
   const serviceIndex = new Map(services.map((service, index) => [service, index]));
   const runtimeTokenSymbols = new Set<ts.Symbol>();
@@ -498,7 +499,7 @@ function generateRegistry(program: ts.Program, root: string, options: SeparaPlug
   const runtimeTokenNames = new Map(runtimeTokens.map((token, index) => [token.symbol, `RuntimeToken${index}`]));
   const runtimeTokenImports = runtimeTokens.map((token, index) => {
     const normalized = token.file.split(path.sep).join("/");
-    return `import { ${token.exportName} as RuntimeToken${index} } from ${JSON.stringify(`/@fs/${normalized}`)};`;
+    return `import { ${token.exportName} as RuntimeToken${index} } from ${JSON.stringify(normalized)};`;
   });
   // 即使 Optional 接口当前没有实现，也必须生成稳定 Token，供 tryGet() 安全查询。
   const contractCandidates = new Map(implementations);
@@ -753,79 +754,122 @@ function findSfcDependencies(root: string, options: ts.CompilerOptions): string[
   return [...extraFiles];
 }
 
-/** 创建 Separa Vite 插件，并在构建和源码热更新时刷新生成注册表。 */
-export default function separa(options: SeparaPluginOptions = {}): Plugin {
-  let config: ResolvedConfig;
+import { createUnplugin, type UnpluginInstance, type UnpluginFactory } from "unplugin";
+
+/** 创建 Separa 统一 Unplugin 工厂，并在构建和源码热更新时刷新生成注册表。 */
+export const unpluginFactory: UnpluginFactory<SeparaPluginOptions | undefined> = (options = {}, meta) => {
+  let root = options.root || process.cwd();
+  let viteConfig: any;
   let generated = "export const serviceDefinitions = []; export const generatedServices = {};";
 
-  const rebuild = (): void => {
+  const getRoot = (): string => {
+    if (options.root) return options.root;
+    if (viteConfig?.root) return viteConfig.root;
+    return root;
+  };
+
+  const rebuild = (targetRoot = getRoot()): void => {
     const configPath = options.tsconfig
-      ? path.resolve(config.root, options.tsconfig)
-      : ts.findConfigFile(config.root, ts.sys.fileExists, "tsconfig.json");
-    if (!configPath) throw new Error(`[Separa] Cannot find tsconfig.json below ${config.root}.`);
+      ? path.resolve(targetRoot, options.tsconfig)
+      : ts.findConfigFile(targetRoot, ts.sys.fileExists, "tsconfig.json");
+    if (!configPath) throw new Error(`[Separa] Cannot find tsconfig.json below ${targetRoot}.`);
     const configFile = ts.readConfigFile(configPath, ts.sys.readFile);
     if (configFile.error) throw new Error(ts.flattenDiagnosticMessageText(configFile.error.messageText, "\n"));
     const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(configPath));
-    const extraFiles = findSfcDependencies(config.root, parsed.options);
+    const extraFiles = findSfcDependencies(targetRoot, parsed.options);
     const allFileNames = [...new Set([...parsed.fileNames, ...extraFiles])];
     // 使用完整 TypeScript Program，而不是文本匹配，才能识别接口、别名和联合类型。
     const program = ts.createProgram(allFileNames, parsed.options);
-    generated = generateRegistry(program, config.root, options);
+    generated = generateRegistry(program, targetRoot, options);
     if (options.debugOutput !== false) {
-      const output = path.resolve(config.root, options.debugOutput ?? ".separa/registry.generated.ts");
+      const output = path.resolve(targetRoot, options.debugOutput ?? ".separa/registry.generated.ts");
       ts.sys.createDirectory(path.dirname(output));
       ts.sys.writeFile(output, generated);
     }
     if (options.declarationOutput !== false) {
-      const output = path.resolve(config.root, options.declarationOutput ?? ".separa/registry.generated.d.ts");
+      const output = path.resolve(targetRoot, options.declarationOutput ?? ".separa/registry.generated.d.ts");
       ts.sys.createDirectory(path.dirname(output));
-      ts.sys.writeFile(output, generateRegistryDeclaration(program, config.root, output, options));
+      ts.sys.writeFile(output, generateRegistryDeclaration(program, targetRoot, output, options));
     }
+  };
+
+  const getVirtualFilePath = (targetRoot = getRoot()): string => {
+    return path.resolve(targetRoot, ".separa/registry.generated.js");
   };
 
   return {
     name: "separa",
     enforce: "pre",
-    configResolved(resolved) {
-      config = resolved;
+    vite: {
+      configResolved(resolved: any) {
+        viteConfig = resolved;
+        root = resolved.root;
+      },
+      handleHotUpdate(context: any) {
+        if (/\.[cm]?[jt]sx?$|\.(vue|svelte|astro)$/.test(context.file)) {
+          rebuild(context.server?.config?.root || getRoot());
+          const module = context.server?.moduleGraph?.getModuleById?.(RESOLVED_VIRTUAL_ID);
+          if (module) context.server.moduleGraph.invalidateModule(module);
+        }
+      },
     },
     buildStart() {
       rebuild();
     },
     resolveId(id) {
-      return id === VIRTUAL_ID ? RESOLVED_VIRTUAL_ID : undefined;
+      if (id === VIRTUAL_ID || id.startsWith("virtual:separa")) {
+        if (meta.framework === "webpack" || meta.framework === "rspack" || meta.framework === "esbuild") {
+          const vpath = getVirtualFilePath();
+          ts.sys.createDirectory(path.dirname(vpath));
+          ts.sys.writeFile(vpath, generated);
+          return vpath;
+        }
+        return RESOLVED_VIRTUAL_ID;
+      }
+      return undefined;
     },
     load(id) {
-      return id === RESOLVED_VIRTUAL_ID ? generated : undefined;
+      if (
+        id === RESOLVED_VIRTUAL_ID ||
+        id === VIRTUAL_ID ||
+        id.includes(VIRTUAL_ID) ||
+        id.includes(".separa/registry.generated.js") ||
+        id.includes(".separa\\registry.generated.js")
+      ) {
+        return generated;
+      }
+      return undefined;
     },
     /**
      * 💡 【问题原因与自动兼容处理】：
-     * Vite 开发服务（Dev Server）默认使用 esbuild 快速转译 .ts/.tsx 文件，
-     * 但 esbuild 原生不支持 TypeScript 的 'emitDecoratorMetadata' 选项，
+     * Vite / Webpack / Rspack / Rollup / esbuild 构建服务在不同模式下可能不默认保留
+     * TypeScript 的 'emitDecoratorMetadata' 选项，
      * 导致生成的 JS 代码丢失了 __metadata("design:type", ClassType)，
-     * 从而使 @Autowired() 在浏览器运行时无法通过 Reflect.getMetadata("design:type") 自动反射出属性的类类型。
+     * 从而使 @Autowired() 运行时无法通过 Reflect.getMetadata("design:type") 自动反射出属性的类类型。
      *
      * 解决方案：
      * 在 enforce: "pre" 阶段拦截含有 @Service / @Autowired / @Inject 的源码文件，
      * 使用 TypeScript 编译器（ts.transpileModule）开启 experimentalDecorators 与 emitDecoratorMetadata 进行转译，
-     * 保证产物中完整包含装饰器类型元数据，实现开发者在 vite.config.ts 中零额外配置、开箱即用。
+     * 保证产物中完整包含装饰器类型元数据，实现各构建工具中零额外配置、开箱即用。
      */
     transform(code, id) {
       if (id.includes("node_modules")) return null;
       const cleanId = id.split("?")[0]!;
       if (!/\.[cm]?[jt]sx?$/.test(cleanId)) return null;
+      const sourceCode = typeof code === "string" ? code : String(code);
       if (
-        !code.includes("@Service") &&
-        !code.includes("@Autowired") &&
-        !code.includes("@Inject") &&
-        !code.includes("@Qualifier") &&
-        !code.includes("@Optional") &&
-        !code.includes("@InjectMany")
+        !/\.[cm]?tsx?$/.test(cleanId) &&
+        !sourceCode.includes("@Service") &&
+        !sourceCode.includes("@Autowired") &&
+        !sourceCode.includes("@Inject") &&
+        !sourceCode.includes("@Qualifier") &&
+        !sourceCode.includes("@Optional") &&
+        !sourceCode.includes("@InjectMany")
       ) {
         return null;
       }
 
-      const result = ts.transpileModule(code, {
+      const result = ts.transpileModule(sourceCode, {
         fileName: cleanId,
         compilerOptions: {
           target: ts.ScriptTarget.ES2022,
@@ -841,15 +885,49 @@ export default function separa(options: SeparaPluginOptions = {}): Plugin {
         map: result.sourceMapText ? JSON.parse(result.sourceMapText) : null,
       };
     },
-    handleHotUpdate(context) {
-      if (/\.[cm]?[jt]sx?$|\.(vue|svelte|astro)$/.test(context.file)) {
-        rebuild();
-        // 主动失效虚拟模块，使下一次请求获得最新服务图和 Factory。
-        const module = context.server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_ID);
-        if (module) context.server.moduleGraph.invalidateModule(module);
-      }
+    webpack(compiler: any) {
+      root = compiler.context || process.cwd();
+      const vpath = getVirtualFilePath(root);
+      ts.sys.createDirectory(path.dirname(vpath));
+      ts.sys.writeFile(vpath, generated);
+
+      compiler.hooks.compilation.tap("separa-virtual", (compilation: any, { normalModuleFactory }: any) => {
+        normalModuleFactory.hooks.resolveForScheme.for("virtual").tap("separa-virtual", (resourceData: any) => {
+          resourceData.path = vpath;
+          resourceData.resource = vpath;
+          resourceData.scheme = undefined;
+          return true;
+        });
+      });
+    },
+    rspack(compiler: any) {
+      root = compiler.context || process.cwd();
+      const vpath = getVirtualFilePath(root);
+      ts.sys.createDirectory(path.dirname(vpath));
+      ts.sys.writeFile(vpath, generated);
+
+      compiler.hooks.compilation.tap("separa-virtual", (compilation: any, { normalModuleFactory }: any) => {
+        normalModuleFactory.hooks.resolveForScheme.for("virtual").tap("separa-virtual", (resourceData: any) => {
+          resourceData.path = vpath;
+          resourceData.resource = vpath;
+          resourceData.scheme = undefined;
+          return true;
+        });
+      });
     },
   };
-}
+};
+
+export const unplugin: UnpluginInstance<SeparaPluginOptions | undefined, boolean> = createUnplugin(unpluginFactory);
+
+export const vite = unplugin.vite;
+export const webpack = unplugin.webpack;
+export const rspack = unplugin.rspack;
+export const rollup = unplugin.rollup;
+export const esbuild = unplugin.esbuild;
+
+export default vite;
 
 export { VIRTUAL_ID };
+
+
